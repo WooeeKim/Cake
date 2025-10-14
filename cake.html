@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Make a Cake with Me! - Naeun Kim</title>
+  <style>
+    :root{
+      --bg:#0e0f14; /* dark room */
+      --cake:#f7d8bf; /* sponge */
+      --icing:#fff4fb; /* icing */
+      --plate:#dde3ea;
+      --accent:#ff7a99;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0}
+    body{
+      background: radial-gradient(1200px 600px at 50% 80%, #1b1d29 0%, var(--bg) 60%);
+      color:#fff;font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      overflow:hidden;
+    }
+    #hud{
+      position:fixed; left:16px; top:16px; padding:12px 14px; border-radius:14px;
+      background:rgba(255,255,255,0.06); backdrop-filter: blur(6px);
+      line-height:1.4; font-size:14px; max-width: 520px; border:1px solid rgba(255,255,255,0.1);
+    }
+    #hud kbd{background:#22263a;border:1px solid #2f3552;padding:2px 6px;border-radius:6px}
+    #stage{position:relative; width:100%; height:100%;}
+
+    /* Plate */
+    .plate{ position:absolute; left:50%; bottom:4%; transform:translateX(-50%);
+      width: 56vw; height: 2.6vw; min-height:18px; background: var(--plate);
+      border-radius: 80px; filter: drop-shadow(0 24px 40px rgba(0,0,0,0.35));
+    }
+    /* Cake body */
+    .cake{ position:absolute; left:50%; bottom:7.5%; transform:translateX(-50%);
+      width: 48vw; max-width: 900px; min-width: 360px; height: 18vw; min-height: 180px;
+      background: linear-gradient(#ffe7de, var(--cake)); border-radius: 24px; overflow:visible;
+      box-shadow: inset 0 -16px 0 var(--icing), 0 40px 80px rgba(0,0,0,0.35);
+    }
+    .cake::after{ /* icing drip rim */
+      content:""; position:absolute; left:0; right:0; top:0; height: 44px; border-radius:24px 24px 0 0;
+      background: linear-gradient(180deg, var(--icing), #ffdbe9 80%);
+      mask: radial-gradient(30px 12px at 8% 14px, #000 95%, transparent 100%),
+            radial-gradient(40px 16px at 30% 14px, #000 95%, transparent 100%),
+            radial-gradient(28px 12px at 54% 14px, #000 95%, transparent 100%),
+            radial-gradient(36px 12px at 74% 14px, #000 95%, transparent 100%),
+            radial-gradient(30px 12px at 90% 14px, #000 95%, transparent 100%);
+      mask-composite: exclude;
+    }
+
+    /* Candles (emoji or tiny dom) */
+    .candle{ position:absolute; bottom: calc(18vw - 8px); font-size: 28px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3)); user-select:none;}
+
+    /* Falling bits (letters / toppings) */
+    .bit{ position:absolute; top:-40px; font-weight:700; font-size: clamp(16px, 1.6vw, 28px); user-select:none; }
+    .bit.letter{ color:#fff; text-shadow: 0 2px 0 rgba(0,0,0,0.4), 0 0 18px rgba(255,174,213,0.35);}    
+    .bit.topping{ filter: drop-shadow(0 2px 2px rgba(0,0,0,0.35)); font-size: clamp(20px, 1.8vw, 34px);}
+    .sprinkle{ width:8px; height:8px; border-radius:50%; position:absolute; top:-10px; }
+
+    @keyframes fall { to { transform: translateY(86vh); opacity: 1; } }
+    @keyframes eat  { to { transform: translateX(120vw) rotate(8deg); opacity:0 } }
+
+    .falling{ animation: fall linear var(--dur,3.2s); }
+    .eaten{ animation: eat 900ms ease-in forwards; }
+
+    /* Room lighting when candles on */
+    .warm{ background: radial-gradient(1200px 600px at 50% 65%, #3a2b1d 0%, #1b1d29 40%, var(--bg) 75%); }
+
+    /* Guest hand */
+    .hand{ position:absolute; right:-20vw; top:40%; font-size: clamp(42px, 6vw, 100px); filter: drop-shadow(0 8px 14px rgba(0,0,0,0.35));}
+
+    /* tiny help footer */
+    #footer{ position:fixed; right:16px; bottom:14px; opacity:0.8; font-size:12px; color:#b7bfd8; }
+  </style>
+</head>
+<body>
+  <div id="hud">
+    <div><strong>Make a Cake with Me! - Naeun Kim</strong></div>
+    <div>일반 키: <em>글자</em>가 케이크에 쌓여요.</div>
+    <div><kbd>F</kbd>🍓 <kbd>A</kbd>🍎 <kbd>B</kbd>🫐 <kbd>C</kbd>🍒 <kbd>G</kbd>🍇 <kbd>M</kbd>🥭 <kbd>K</kbd>🥝 <kbd>P</kbd>🍑 <kbd>O</kbd>🍊 <kbd>L</kbd>🍋  |  <kbd>W</kbd>🧁 크림  |  숫자키: 스프링클</div>
+    <div><kbd>Space</kbd>: 촛불 켜기/끄기 / <kbd>G</kbd>: 손님이 가져가요(초기화)</div>
+  </div>
+  <div id="stage">
+    <div class="plate"></div>
+    <div id="cake" class="cake" aria-label="cake"></div>
+  </div>
+  <div id="footer">type to play • made for ID202 prototyping</div>
+
+  <script>
+  // ===== Audio — tiny synth & candle pad =====
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  let actx = null;
+  function getAC(){ if(!actx) actx = new AudioCtx(); return actx; }
+
+  function noteForKey(k){
+    // Simple mapping: map char code to pentatonic (C D E G A)
+    const scale = [261.63, 293.66, 329.63, 392.00, 440.00];
+    const idx = (k.toUpperCase().charCodeAt(0) + 7) % scale.length;
+    return scale[idx] * (1 + ((k.charCodeAt(0)%5)-2)*0.01); // tiny detune
+  }
+
+  function blip(k){
+    const ac = getAC();
+    const o = ac.createOscillator();
+    const g = ac.createGain();
+    o.type = 'triangle';
+    o.frequency.value = noteForKey(k);
+    g.gain.value = 0.001; // start silent to avoid click
+    o.connect(g).connect(ac.destination);
+    const now = ac.currentTime;
+    // percussive envelope
+    g.gain.linearRampToValueAtTime(0.12, now + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0008, now + 0.22);
+    o.start();
+    o.stop(now + 0.25);
+  }
+
+  // Ambient candle pad when candles ON
+  let candleOsc = null, candleGain = null;
+  function candleOn(){
+    const ac = getAC();
+    candleOsc = ac.createOscillator();
+    candleGain = ac.createGain();
+    candleOsc.type = 'sine';
+    candleOsc.frequency.value = 196; // warm low tone (G3)
+    candleGain.gain.value = 0.0001;
+    candleOsc.connect(candleGain).connect(ac.destination);
+    const now = ac.currentTime;
+    candleGain.gain.linearRampToValueAtTime(0.06, now + 0.6);
+    candleOsc.start();
+  }
+  function candleOff(){
+    if(!candleGain || !candleOsc) return;
+    const ac = getAC();
+    const now = ac.currentTime;
+    candleGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.2);
+    candleOsc.stop(now + 0.25);
+    candleGain = null; candleOsc = null;
+  }
+
+  // ===== Scene =====
+  const stage = document.getElementById('stage');
+  const cake  = document.getElementById('cake');
+  let candlesLit = false;
+
+  const rand = (min,max)=> Math.random()*(max-min)+min;
+
+  function cakeRect(){ return cake.getBoundingClientRect(); }
+
+  // Create falling element (letter or topping)
+  function spawnBit(opts){
+    const { text, className, emoji, color } = opts;
+    const bit = document.createElement('div');
+    bit.className = 'bit falling ' + (className||'');
+    bit.style.setProperty('--dur', (rand(2.2, 3.8)).toFixed(2)+'s');
+
+    const stageRect = stage.getBoundingClientRect();
+    const x = rand(stageRect.width*0.18, stageRect.width*0.82);
+    bit.style.left = x + 'px';
+    bit.style.opacity = 0.96;
+
+    if(emoji){ bit.textContent = emoji; }
+    else if(text){ bit.textContent = text; }
+
+    if(color){ bit.style.color = color; }
+
+    stage.appendChild(bit);
+
+    bit.addEventListener('animationend', ()=> {
+      // land it on cake top if within x-range
+      const cr = cakeRect();
+      const bx = bit.getBoundingClientRect().left + bit.offsetWidth/2;
+      if(bx > cr.left && bx < cr.right){
+        // snap to cake top, random jitter
+        bit.classList.remove('falling');
+        const localX = bx - cr.left + rand(-8,8);
+        bit.style.top = (cr.top - 24) + 'px';
+        bit.style.left = (cr.left + localX) + 'px';
+        bit.style.position = 'absolute';
+      } else {
+        // off the plate → remove
+        bit.remove();
+      }
+    });
+  }
+
+  // Sprinkles for number keys
+  function sprinkle(){
+    const s = document.createElement('div');
+    s.className = 'sprinkle falling';
+    const stageRect = stage.getBoundingClientRect();
+    s.style.left = rand(stageRect.width*0.2, stageRect.width*0.8)+'px';
+    const palette = ['#ff7a99','#ffd166','#8be9fd','#c2ff8f','#b197fc'];
+    s.style.background = palette[Math.floor(rand(0, palette.length))];
+    s.style.setProperty('--dur', (rand(1.6, 2.6)).toFixed(2)+'s');
+    stage.appendChild(s);
+    s.addEventListener('animationend', ()=> s.remove());
+  }
+
+  // Candles management
+  function placeCandles(){
+    // Clear old
+    [...document.querySelectorAll('.candle')].forEach(c=>c.remove());
+    const cr = cakeRect();
+    const count = 5;
+    for(let i=0;i<count;i++){
+      const c = document.createElement('div');
+      c.className = 'candle';
+      c.textContent = '🕯️';
+      const x = (cr.left + (cr.width*(0.15 + i*(0.7/(count-1))))) - 14;
+      c.style.left = x + 'px';
+      stage.appendChild(c);
+    }
+  }
+
+  function toggleCandles(){
+    candlesLit = !candlesLit;
+    if(candlesLit){
+      placeCandles();
+      document.body.classList.add('warm');
+      candleOn();
+    } else {
+      document.body.classList.remove('warm');
+      candleOff();
+      [...document.querySelectorAll('.candle')].forEach(c=>c.remove());
+    }
+  }
+
+  // Guest arrives and clears
+  function guestEat(){
+    // animate cake moving out, then reset bits and bring back
+    const hand = document.createElement('div');
+    hand.className = 'hand';
+    hand.textContent = '🫱🏻\u200d🍰';
+    stage.appendChild(hand);
+
+    // push cake away
+    cake.classList.add('eaten');
+    setTimeout(()=>{
+      // clear stage bits
+      [...document.querySelectorAll('.bit,.sprinkle,.candle')].forEach(n=>n.remove());
+      document.body.classList.remove('warm');
+      candleOff();
+      candlesLit = false;
+      cake.classList.remove('eaten');
+      hand.remove();
+    }, 950);
+  }
+
+  // Input handling
+  window.addEventListener('keydown', (e)=>{
+    // Prevent page scroll on space
+    if(e.key === ' '){ e.preventDefault(); }
+    // Start audio context lazily
+    if(actx && actx.state === 'suspended') actx.resume();
+
+    // Special controls
+    if(e.key === ' '){ toggleCandles(); return; } // Space: candles
+    if(e.key.toLowerCase() === 'g'){ guestEat(); return; }
+
+    // Toppings (fruits)
+    const toppingMap = { 'f':'🍓','a':'🍎','b':'🫐','c':'🍒','g':'🍇','m':'🥭','k':'🥝','p':'🍑','o':'🍊','l':'🍋' };
+    const keyLower = e.key.toLowerCase();
+    if(toppingMap[keyLower]){ spawnBit({emoji: toppingMap[keyLower], className:'topping'}); blip(keyLower); return; }
+    // Cream
+    if(keyLower === 'w'){ spawnBit({emoji:'🧁', className:'topping'}); blip('w'); return; }
+
+    // Numbers → sprinkles
+    if(/[0-9]/.test(e.key)){ sprinkle(); blip(e.key); return; }
+
+    // Letters and common symbols → falling letters
+    if(e.key.length === 1){
+      spawnBit({ text: e.key, className:'letter' });
+      blip(e.key);
+      return;
+    }
+    // Backspace removes last landed element near cake
+    if(e.key === 'Backspace'){
+      const bits = [...document.querySelectorAll('.bit')];
+      if(bits.length){ bits[bits.length-1].remove(); }
+      return;
+    }
+  });
+
+  // Resize adjustment: reposition candles if lit
+  window.addEventListener('resize', ()=>{ if(candlesLit) placeCandles(); });
+  </script>
+</body>
+</html>
