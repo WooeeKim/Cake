@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Make a Cake with Me! - Naeun Kim</title>
+  <title>Make a Cake with Me! - Naeun Kim (v2)</title>
   <style>
     :root{
       --bg:#0e0f14; /* dark room */
@@ -22,10 +22,38 @@
     #hud{
       position:fixed; left:16px; top:16px; padding:12px 14px; border-radius:14px;
       background:rgba(255,255,255,0.06); backdrop-filter: blur(6px);
-      line-height:1.4; font-size:14px; max-width: 520px; border:1px solid rgba(255,255,255,0.1);
+      line-height:1.4; font-size:14px; max-width: 560px; border:1px solid rgba(255,255,255,0.1);
+      transition: opacity .25s ease, transform .25s ease, visibility .25s;
     }
+    #hud.hidden{ opacity:0; transform: translateY(-6px); visibility:hidden; }
     #hud kbd{background:#22263a;border:1px solid #2f3552;padding:2px 6px;border-radius:6px}
+    #hud .mini{font-size:12px; color:#b9c2df}
+
+    #hud-toggle{
+      position:fixed; left:16px; top:16px; width:36px; height:36px; border-radius:10px;
+      background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.12);
+      display:grid; place-items:center; cursor:pointer; font-weight:800; user-select:none;
+      transition: transform .15s ease; backdrop-filter: blur(6px);
+    }
+    #hud-toggle:hover{ transform: scale(1.05); }
+
     #stage{position:relative; width:100%; height:100%;}
+
+    /* Roof */
+    .roof{ position:absolute; left:50%; top:0; transform:translateX(-50%);
+      width: 84vw; height: 42px; border-radius:0 0 18px 18px;
+      background:
+        repeating-linear-gradient( 90deg, #5b4525 0 18px, #6d5330 18px 36px),
+        linear-gradient(#8b6a3c, #5b4525 66%);
+      box-shadow: 0 6px 12px rgba(0,0,0,0.35);
+      overflow:hidden;
+    }
+    .roof::after{ /* straw fringe */
+      content:""; position:absolute; inset:auto 0 -14px 0; height:22px;
+      background: repeating-linear-gradient(90deg, #e7ba66 0 2px, transparent 2px 8px);
+      filter: drop-shadow(0 6px 4px rgba(0,0,0,0.35));
+      opacity:0.7;
+    }
 
     /* Plate */
     .plate{ position:absolute; left:50%; bottom:4%; transform:translateX(-50%);
@@ -49,13 +77,15 @@
       mask-composite: exclude;
     }
 
-    /* Candles (emoji or tiny dom) */
+    /* Candles */
     .candle{ position:absolute; bottom: calc(18vw - 8px); font-size: 28px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3)); user-select:none;}
 
     /* Falling bits (letters / toppings) */
     .bit{ position:absolute; top:-40px; font-weight:700; font-size: clamp(16px, 1.6vw, 28px); user-select:none; }
     .bit.letter{ color:#fff; text-shadow: 0 2px 0 rgba(0,0,0,0.4), 0 0 18px rgba(255,174,213,0.35);}    
-    .bit.topping{ filter: drop-shadow(0 2px 2px rgba(0,0,0,0.35)); font-size: clamp(20px, 1.8vw, 34px);}
+    .bit.topping{ filter: drop-shadow(0 2px 2px rgba(0,0,0,0.35)); font-size: clamp(20px, 1.8vw, 34px);}    
+    .bit.giant{ font-size: clamp(64px, 7vw, 120px); }
+
     .sprinkle{ width:8px; height:8px; border-radius:50%; position:absolute; top:-10px; }
 
     @keyframes fall { to { transform: translateY(86vh); opacity: 1; } }
@@ -70,60 +100,70 @@
     /* Guest hand */
     .hand{ position:absolute; right:-20vw; top:40%; font-size: clamp(42px, 6vw, 100px); filter: drop-shadow(0 8px 14px rgba(0,0,0,0.35));}
 
-    /* tiny help footer */
-    #footer{ position:fixed; right:16px; bottom:14px; opacity:0.8; font-size:12px; color:#b7bfd8; }
+    /* Footer + Buttons */
+    #footer{ position:fixed; right:16px; bottom:14px; opacity:0.85; font-size:12px; color:#b7bfd8; }
+    .pill{
+      position:fixed; right:16px; bottom:46px; padding:10px 12px; border-radius:999px; cursor:pointer;
+      background: rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.12); user-select:none;
+      backdrop-filter: blur(6px); transition: transform .12s ease; font-size:13px; color:#e7eaf6;
+    }
+    .pill:active{ transform: translateY(1px); }
   </style>
 </head>
 <body>
+  <div id="hud-toggle" title="도움말 보기/숨기기">?</div>
   <div id="hud">
     <div><strong>Make a Cake with Me! - Naeun Kim</strong></div>
-    <div>일반 키: <em>글자</em>가 케이크에 쌓여요.</div>
-    <div><kbd>F</kbd>🍓 <kbd>A</kbd>🍎 <kbd>B</kbd>🫐 <kbd>C</kbd>🍒 <kbd>G</kbd>🍇 <kbd>M</kbd>🥭 <kbd>K</kbd>🥝 <kbd>P</kbd>🍑 <kbd>O</kbd>🍊 <kbd>L</kbd>🍋  |  <kbd>W</kbd>🧁 크림  |  숫자키: 스프링클</div>
-    <div><kbd>Space</kbd>: 촛불 켜기/끄기 / <kbd>G</kbd>: 손님이 가져가요(초기화)</div>
+    <div class="mini">글자가 케이크에 쌓여요 • 손님이 가져가요 🍰 → 길게 눌러요(<kbd>G</kbd>) 또는 버튼</div>
+    <div>일반 키: <em>글자</em>가 케이크에 층층이 쌓여요 (겹치지 않게!)</div>
+    <div><kbd>Space</kbd>: 촛불 켜기/끄기 / <kbd>G</kbd>: 길게 눌러 손님이 가져가요(초기화)</div>
+    <div>숫자키: 스프링클 • 가끔은 깜짝 수박🍉이 등장해요!</div>
+    <div class="mini">과일은 랜덤으로도 떨어져요. 비밀 조합은 직접 찾아보세요 🍓🍑🍒</div>
   </div>
+
   <div id="stage">
+    <div class="roof" aria-hidden="true"></div>
     <div class="plate"></div>
     <div id="cake" class="cake" aria-label="cake"></div>
   </div>
+
+  <button id="resetBtn" class="pill" title="손님이 가져가요">🫱🏻‍🍰 손님이 가져가요</button>
   <div id="footer">type to play • made for ID202 prototyping</div>
 
   <script>
   // ===== Audio — tiny synth & candle pad =====
   const AudioCtx = window.AudioContext || window.webkitAudioContext;
-  let actx = null;
-  function getAC(){ if(!actx) actx = new AudioCtx(); return actx; }
+  let audioContext = null;
+  function getAudioContext(){ if(!audioContext) audioContext = new AudioCtx(); return audioContext; }
 
-  function noteForKey(k){
-    // Simple mapping: map char code to pentatonic (C D E G A)
-    const scale = [261.63, 293.66, 329.63, 392.00, 440.00];
-    const idx = (k.toUpperCase().charCodeAt(0) + 7) % scale.length;
-    return scale[idx] * (1 + ((k.charCodeAt(0)%5)-2)*0.01); // tiny detune
+  function noteForKey(key){
+    const scale = [261.63, 293.66, 329.63, 392.00, 440.00]; // C D E G A
+    const index = (key.toUpperCase().charCodeAt(0) + 7) % scale.length;
+    return scale[index] * (1 + ((key.charCodeAt(0)%5)-2)*0.01);
   }
 
-  function blip(k){
-    const ac = getAC();
-    const o = ac.createOscillator();
-    const g = ac.createGain();
-    o.type = 'triangle';
-    o.frequency.value = noteForKey(k);
-    g.gain.value = 0.001; // start silent to avoid click
-    o.connect(g).connect(ac.destination);
+  function blip(key){
+    const ac = getAudioContext();
+    const osc = ac.createOscillator();
+    const gain = ac.createGain();
+    osc.type = 'triangle';
+    osc.frequency.value = noteForKey(key);
+    gain.gain.value = 0.001;
+    osc.connect(gain).connect(ac.destination);
     const now = ac.currentTime;
-    // percussive envelope
-    g.gain.linearRampToValueAtTime(0.12, now + 0.01);
-    g.gain.exponentialRampToValueAtTime(0.0008, now + 0.22);
-    o.start();
-    o.stop(now + 0.25);
+    gain.gain.linearRampToValueAtTime(0.12, now + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0008, now + 0.22);
+    osc.start();
+    osc.stop(now + 0.25);
   }
 
-  // Ambient candle pad when candles ON
   let candleOsc = null, candleGain = null;
   function candleOn(){
-    const ac = getAC();
+    const ac = getAudioContext();
     candleOsc = ac.createOscillator();
     candleGain = ac.createGain();
     candleOsc.type = 'sine';
-    candleOsc.frequency.value = 196; // warm low tone (G3)
+    candleOsc.frequency.value = 196;
     candleGain.gain.value = 0.0001;
     candleOsc.connect(candleGain).connect(ac.destination);
     const now = ac.currentTime;
@@ -132,7 +172,7 @@
   }
   function candleOff(){
     if(!candleGain || !candleOsc) return;
-    const ac = getAC();
+    const ac = getAudioContext();
     const now = ac.currentTime;
     candleGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.2);
     candleOsc.stop(now + 0.25);
@@ -142,65 +182,50 @@
   // ===== Scene =====
   const stage = document.getElementById('stage');
   const cake  = document.getElementById('cake');
+  const hud   = document.getElementById('hud');
+  const hudToggle = document.getElementById('hud-toggle');
+  const resetBtn = document.getElementById('resetBtn');
   let candlesLit = false;
 
-  const rand = (min,max)=> Math.random()*(max-min)+min;
-
+  const randomBetween = (min,max)=> Math.random()*(max-min)+min;
   function cakeRect(){ return cake.getBoundingClientRect(); }
 
-  // Create falling element (letter or topping)
-  function spawnBit(opts){
-    const { text, className, emoji, color } = opts;
-    const bit = document.createElement('div');
-    bit.className = 'bit falling ' + (className||'');
-    bit.style.setProperty('--dur', (rand(2.2, 3.8)).toFixed(2)+'s');
-
-    const stageRect = stage.getBoundingClientRect();
-    const x = rand(stageRect.width*0.18, stageRect.width*0.82);
-    bit.style.left = x + 'px';
-    bit.style.opacity = 0.96;
-
-    if(emoji){ bit.textContent = emoji; }
-    else if(text){ bit.textContent = text; }
-
-    if(color){ bit.style.color = color; }
-
-    stage.appendChild(bit);
-
-    bit.addEventListener('animationend', ()=> {
-      // land it on cake top if within x-range
+  // ===== Non-overlapping stacking grid =====
+  const stacking = {
+    columnsCount: 24,
+    columnWidth: 0, // pixel computed
+    rowHeight: 28,
+    baseTop: 0, // cake top in px (stage coords)
+    baseLeft: 0,
+    stacks: [],
+    recompute(){
       const cr = cakeRect();
-      const bx = bit.getBoundingClientRect().left + bit.offsetWidth/2;
-      if(bx > cr.left && bx < cr.right){
-        // snap to cake top, random jitter
-        bit.classList.remove('falling');
-        const localX = bx - cr.left + rand(-8,8);
-        bit.style.top = (cr.top - 24) + 'px';
-        bit.style.left = (cr.left + localX) + 'px';
-        bit.style.position = 'absolute';
-      } else {
-        // off the plate → remove
-        bit.remove();
-      }
-    });
-  }
+      this.columnWidth = cr.width / this.columnsCount;
+      this.baseTop = cr.top - 6; // slight rim offset
+      this.baseLeft = cr.left;
+      this.stacks = new Array(this.columnsCount).fill(0);
+    },
+    placeAt(xCenter, node){
+      const localX = Math.max(0, Math.min(xCenter - this.baseLeft, this.columnsCount * this.columnWidth - 1));
+      const columnIndex = Math.floor(localX / this.columnWidth);
+      const offsetX = this.baseLeft + columnIndex * this.columnWidth + this.columnWidth/2 + randomBetween(-6,6);
+      const level = this.stacks[columnIndex];
+      const y = this.baseTop - (level * this.rowHeight);
+      node.classList.remove('falling');
+      node.style.top = y + 'px';
+      node.style.left = offsetX + 'px';
+      node.style.position = 'absolute';
+      this.stacks[columnIndex] = level + 1;
+    },
+    reset(){ this.recompute(); }
+  };
 
-  // Sprinkles for number keys
-  function sprinkle(){
-    const s = document.createElement('div');
-    s.className = 'sprinkle falling';
-    const stageRect = stage.getBoundingClientRect();
-    s.style.left = rand(stageRect.width*0.2, stageRect.width*0.8)+'px';
-    const palette = ['#ff7a99','#ffd166','#8be9fd','#c2ff8f','#b197fc'];
-    s.style.background = palette[Math.floor(rand(0, palette.length))];
-    s.style.setProperty('--dur', (rand(1.6, 2.6)).toFixed(2)+'s');
-    stage.appendChild(s);
-    s.addEventListener('animationend', ()=> s.remove());
-  }
+  // initialize stacking after layout
+  window.addEventListener('load', ()=> stacking.recompute());
+  window.addEventListener('resize', ()=> stacking.recompute());
 
-  // Candles management
+  // ===== Candles =====
   function placeCandles(){
-    // Clear old
     [...document.querySelectorAll('.candle')].forEach(c=>c.remove());
     const cr = cakeRect();
     const count = 5;
@@ -213,7 +238,6 @@
       stage.appendChild(c);
     }
   }
-
   function toggleCandles(){
     candlesLit = !candlesLit;
     if(candlesLit){
@@ -227,63 +251,158 @@
     }
   }
 
-  // Guest arrives and clears
+  // ===== Spawn helpers =====
+  function spawnBit({ text, className, emoji, color, fromRoof=false, giant=false, group=false }){
+    const bit = document.createElement('div');
+    bit.className = 'bit falling ' + (className||'');
+    if(giant) bit.classList.add('giant');
+    bit.style.setProperty('--dur', (randomBetween(2.0, 3.6)).toFixed(2)+'s');
+
+    const stageRect = stage.getBoundingClientRect();
+    const roof = document.querySelector('.roof').getBoundingClientRect();
+    const x = fromRoof
+      ? randomBetween(roof.left + 20, roof.right - 20)
+      : randomBetween(stageRect.width*0.18, stageRect.width*0.82);
+
+    bit.style.left = x + 'px';
+    bit.style.opacity = 0.96;
+
+    if(emoji){ bit.textContent = emoji; }
+    else if(text){ bit.textContent = text; }
+    if(color){ bit.style.color = color; }
+
+    stage.appendChild(bit);
+
+    bit.addEventListener('animationend', ()=> {
+      const cr = cakeRect();
+      const bx = bit.getBoundingClientRect().left + bit.offsetWidth/2;
+      if(bx > cr.left && bx < cr.right){
+        stacking.placeAt(bx, bit);
+      } else {
+        bit.remove();
+      }
+    });
+
+    // Optional group cascade (3 quick neighbors)
+    if(group){
+      for(let i=0;i<3;i++){
+        setTimeout(()=>{
+          spawnBit({ text, className, emoji, color, fromRoof:true });
+        }, 120 + i*80);
+      }
+    }
+  }
+
+  function sprinkle(){
+    const s = document.createElement('div');
+    s.className = 'sprinkle falling';
+    const stageRect = stage.getBoundingClientRect();
+    s.style.left = randomBetween(stageRect.width*0.2, stageRect.width*0.8)+'px';
+    const palette = ['#ff7a99','#ffd166','#8be9fd','#c2ff8f','#b197fc'];
+    s.style.background = palette[Math.floor(randomBetween(0, palette.length))];
+    s.style.setProperty('--dur', (randomBetween(1.6, 2.6)).toFixed(2)+'s');
+    stage.appendChild(s);
+    s.addEventListener('animationend', ()=> s.remove());
+  }
+
+  // ===== Guest arrives (reset) =====
   function guestEat(){
-    // animate cake moving out, then reset bits and bring back
     const hand = document.createElement('div');
     hand.className = 'hand';
     hand.textContent = '🫱🏻\u200d🍰';
     stage.appendChild(hand);
 
-    // push cake away
     cake.classList.add('eaten');
     setTimeout(()=>{
-      // clear stage bits
       [...document.querySelectorAll('.bit,.sprinkle,.candle')].forEach(n=>n.remove());
       document.body.classList.remove('warm');
       candleOff();
       candlesLit = false;
       cake.classList.remove('eaten');
       hand.remove();
+      stacking.reset();
     }, 950);
   }
 
-  // Input handling
-  window.addEventListener('keydown', (e)=>{
-    // Prevent page scroll on space
+  // ===== Input handling + playful surprises =====
+  const toppingMap = { 'f':'🍓','a':'🍎','b':'🫐','c':'🍒','g':'🍇','m':'🥭','k':'🥝','p':'🍑','o':'🍊','l':'🍋' };
+  const fruits = Object.values(toppingMap);
+  let keyPressCount = 0;
+  let gDownAt = 0; // long-press protection for G
+
+  function randomFruit(){ return fruits[Math.floor(Math.random()*fruits.length)]; }
+
+  function maybeSurprise(){
+    // Every 10th press → giant watermelon
+    if(keyPressCount > 0 && keyPressCount % 10 === 0){
+      spawnBit({ emoji:'🍉', className:'topping', fromRoof:true, giant:true, group:true });
+    }
+  }
+
+  function handleKeyDown(e){
     if(e.key === ' '){ e.preventDefault(); }
-    // Start audio context lazily
-    if(actx && actx.state === 'suspended') actx.resume();
+    if(audioContext && audioContext.state === 'suspended') audioContext.resume();
 
-    // Special controls
-    if(e.key === ' '){ toggleCandles(); return; } // Space: candles
-    if(e.key.toLowerCase() === 'g'){ guestEat(); return; }
+    // HUD toggle with '?'
+    if(e.key === '?' || (e.shiftKey && e.key === '/')){ hud.classList.toggle('hidden'); return; }
 
-    // Toppings (fruits)
-    const toppingMap = { 'f':'🍓','a':'🍎','b':'🫐','c':'🍒','g':'🍇','m':'🥭','k':'🥝','p':'🍑','o':'🍊','l':'🍋' };
-    const keyLower = e.key.toLowerCase();
-    if(toppingMap[keyLower]){ spawnBit({emoji: toppingMap[keyLower], className:'topping'}); blip(keyLower); return; }
-    // Cream
-    if(keyLower === 'w'){ spawnBit({emoji:'🧁', className:'topping'}); blip('w'); return; }
+    // Space → candles
+    if(e.key === ' '){ toggleCandles(); return; }
+
+    // Long-press G to reset (accidental guard)
+    if(e.key.toLowerCase() === 'g'){ gDownAt = performance.now(); return; }
 
     // Numbers → sprinkles
-    if(/[0-9]/.test(e.key)){ sprinkle(); blip(e.key); return; }
+    if(/[0-9]/.test(e.key)){ keyPressCount++; sprinkle(); blip(e.key); maybeSurprise(); return; }
 
-    // Letters and common symbols → falling letters
-    if(e.key.length === 1){
-      spawnBit({ text: e.key, className:'letter' });
-      blip(e.key);
+    const keyLower = e.key.toLowerCase();
+
+    // Fruits via explicit hotkeys OR random fruit (20% chance) even for letters
+    if(toppingMap[keyLower] || Math.random() < 0.2){
+      keyPressCount++;
+      const emo = toppingMap[keyLower] || randomFruit();
+      spawnBit({ emoji: emo, className:'topping', fromRoof: Math.random()<0.5 });
+      blip(keyLower);
+      maybeSurprise();
       return;
     }
-    // Backspace removes last landed element near cake
+
+    // Letters and symbols → falling letters
+    if(e.key.length === 1){
+      keyPressCount++;
+      spawnBit({ text: e.key, className:'letter', fromRoof: Math.random()<0.6 });
+      blip(e.key);
+      maybeSurprise();
+      return;
+    }
+
+    // Backspace removes last landed element
     if(e.key === 'Backspace'){
       const bits = [...document.querySelectorAll('.bit')];
       if(bits.length){ bits[bits.length-1].remove(); }
       return;
     }
-  });
+  }
 
-  // Resize adjustment: reposition candles if lit
+  function handleKeyUp(e){
+    if(e.key.toLowerCase() === 'g'){
+      const held = performance.now() - gDownAt;
+      if(held > 450) guestEat();
+      gDownAt = 0;
+    }
+  }
+
+  // HUD toggle button + auto-hide
+  hudToggle.addEventListener('click', ()=> hud.classList.toggle('hidden'));
+  setTimeout(()=> hud.classList.add('hidden'), 5200);
+
+  // Reset pill button
+  resetBtn.addEventListener('click', guestEat);
+
+  window.addEventListener('keydown', handleKeyDown);
+  window.addEventListener('keyup', handleKeyUp);
+
+  // Reposition candles on resize
   window.addEventListener('resize', ()=>{ if(candlesLit) placeCandles(); });
   </script>
 </body>
