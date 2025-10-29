@@ -16,8 +16,9 @@
     *{box-sizing:border-box}
     html,body{height:100%;margin:0}
     body{
-      background: radial-gradient(1200px 600px at 50% 80%, #ffeef5 0%, #e9f5ff 60%, #fff6e9 100%);
-      color:#6a5d7b;font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      /* darker pastel edges for better contrast with the cake */
+      background: radial-gradient(1200px 600px at 50% 80%, #fff6fb 0%, #f1e7f6 35%, #e1d1ea 65%, #cbb8dd 100%);
+      color:#4a324a;font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
       overflow:hidden;
     }
     #hud{
@@ -40,7 +41,7 @@
 
     #stage{position:relative; width:100%; height:100%;}
 
-    /* Empty roof section removed */
+  /* roof removed intentionally */
 
     /* Plate */
     .plate{ position:absolute; left:50%; bottom:4%; transform:translateX(-50%);
@@ -135,10 +136,10 @@
   <div id="hud-toggle" title="도움말 보기/숨기기">?</div>
   <div id="hud">
     <div><strong>Make a Cake with Me! - Naeun Kim</strong></div>
-    <div class="mini">글자가 케이크에 쌓여요 • 손님이 가져가요 🍰 → <kbd>Enter</kbd> 또는 버튼</div>
+  <div class="mini">글자가 케이크에 쌓여요 • 손님이 가져가요 🍰 → <kbd>Enter</kbd>로 초기화</div>
     <div>일반 키: <em>글자</em>가 케이크에 층층이 쌓여요</div>
     <div><kbd>Space</kbd>: 촛불 켜기/끄기 / <kbd>Enter</kbd>: 손님이 가져가요(초기화)</div>
-    <div>숫자키: 스프링클 • 가끔은 깜짝 수박🍉이 등장해요!</div>
+  <div>숫자키: 스프링클</div>
     <div class="mini">과일 단축키를 찾으려면 물음표(?) 아이콘을 클릭해보세요</div>
     <div class="fruit-keys" style="display: none;">
       🍓: F키 / 🍎: A키 / 🫐: B키 / 🍒: C키 / 🍇: G키<br>
@@ -147,12 +148,9 @@
   </div>
 
   <div id="stage">
-    <div class="roof" aria-hidden="true"></div>
     <div class="plate"></div>
     <div id="cake" class="cake" aria-label="cake"></div>
   </div>
-
-  <button id="resetBtn" class="pill" title="손님이 가져가요">🫱🏻‍🍰 손님이 가져가요</button>
   <div id="footer">type to play • made for ID202 prototyping</div>
 
   <script>
@@ -209,52 +207,39 @@
   const cake  = document.getElementById('cake');
   const hud   = document.getElementById('hud');
   const hudToggle = document.getElementById('hud-toggle');
-  const resetBtn = document.getElementById('resetBtn');
   let candlesLit = false;
 
   const randomBetween = (min,max)=> Math.random()*(max-min)+min;
   function cakeRect(){ return cake.getBoundingClientRect(); }
 
-    // ===== Random pile stacking =====
+  // ===== Column stacking (non-overlapping pile) =====
   const stacking = {
+    columnsCount: 24,
+    columnWidth: 0,
+    rowHeight: 34,
     baseTop: 0,
     baseLeft: 0,
     width: 0,
+    stacks: [],
     recompute(){
       const cr = cakeRect();
-      this.baseTop = cr.top;
       this.baseLeft = cr.left;
+      this.baseTop = cr.top + 20; // surface reference
       this.width = cr.width;
+      this.columnWidth = cr.width / this.columnsCount;
+      this.stacks = new Array(this.columnsCount).fill(0);
     },
-    placeAt(xCenter, node){
-      const cr = cakeRect();
-      const surfaceY = cr.top + 20; // Slightly below cake top surface
-      
-      if (node.classList.contains('candle')) {
-        // Random candle color from root variables
-        const colors = getComputedStyle(document.documentElement)
-          .getPropertyValue('--candle-colors').split(',');
-        const color = colors[Math.floor(Math.random() * colors.length)].trim();
-        node.style.background = `linear-gradient(to bottom, ${color}, #ffffff)`;
-        
-        // Precise placement
-        const x = this.baseLeft + (this.width * (Math.random() * 0.6 + 0.2));
-        node.style.left = x + 'px';
-        node.style.transform = `rotate(${randomBetween(-2, 2)}deg)`;
-        node.classList.remove('falling');
-        return;
-      }
-      
-      // Place items near cake surface
-      const x = this.baseLeft + (this.width * 0.15) + Math.random() * (this.width * 0.7);
-      const y = surfaceY - randomBetween(0, 30); // Stack within 30px from surface
-      node.style.left = x + 'px';
-      node.style.top = y + 'px';
-      node.style.position = 'absolute';
-      node.style.zIndex = Math.floor(Math.random() * 100);
-      node.style.transform = `rotate(${randomBetween(-15, 15)}deg)`;
-      node.classList.remove('falling');
+    getTarget(xCenter){
+      // clamp and resolve column index
+      const localX = Math.max(0, Math.min(xCenter - this.baseLeft, this.width - 1));
+      const columnIndex = Math.floor(localX / this.columnWidth);
+      const col = Math.max(0, Math.min(this.columnsCount - 1, columnIndex));
+      const level = this.stacks[col] || 0;
+      const left = this.baseLeft + col * this.columnWidth + this.columnWidth/2 + randomBetween(-8,8);
+      const top = this.baseTop - (level * this.rowHeight);
+      return { left, top, col };
     },
+    occupy(col){ this.stacks[col] = (this.stacks[col] || 0) + 1; },
     reset(){ this.recompute(); }
   };
 
@@ -262,64 +247,73 @@
   window.addEventListener('load', ()=> stacking.recompute());
   window.addEventListener('resize', ()=> stacking.recompute());
 
-  // ===== Candles =====
-  function placeCandles(){
-    [...document.querySelectorAll('.candle')].forEach(c=>c.remove());
-    const cr = cakeRect();
-    const count = 5;
-    for(let i=0;i<count;i++){
-      const c = document.createElement('div');
-      c.className = 'candle';
-      c.innerHTML = '<div class="flame">�</div>';
-      const x = (cr.left + (cr.width*(0.15 + i*(0.7/(count-1))))) - 14;
-      c.style.left = x + 'px';
-      stage.appendChild(c);
-    }
-  }
-  function toggleCandles(){
-    candlesLit = !candlesLit;
-    if(candlesLit){
-      placeCandles();
-      document.body.classList.add('warm');
-      candleOn();
-    } else {
-      document.body.classList.remove('warm');
-      candleOff();
-      [...document.querySelectorAll('.candle')].forEach(c=>c.remove());
-    }
-  }
+  // Candles are created by special-character keys (see input handler).
+  // Lighting is controlled by toggling the "lit" class on existing .candle elements.
 
   // ===== Spawn helpers =====
   function spawnBit({ text, className, emoji, color, fromRoof=false, giant=false, group=false, node=null }){
-    const bit = node || document.createElement('div');
-    const bit = document.createElement('div');
-    bit.className = 'bit falling ' + (className||'');
-    if(giant) bit.classList.add('giant');
-    bit.style.setProperty('--dur', (randomBetween(2.0, 3.6)).toFixed(2)+'s');
+    // node: optionally pass a pre-created element (used for candles)
+    let el = node || document.createElement('div');
+    if(!node){
+      el.className = 'bit ' + (className||'');
+    }
+    if(giant) el.classList.add('giant');
 
+    // initial placement (start above the visible area)
     const stageRect = stage.getBoundingClientRect();
-    const roof = document.querySelector('.roof').getBoundingClientRect();
-    const x = fromRoof
-      ? randomBetween(roof.left + 20, roof.right - 20)
-      : randomBetween(stageRect.width*0.18, stageRect.width*0.82);
+    const cakeRectLocal = cakeRect();
+    const startX = fromRoof ? (cakeRectLocal.left + Math.random() * cakeRectLocal.width) : (stageRect.left + stageRect.width * (0.18 + Math.random()*0.64));
+    el.style.position = 'absolute';
+    el.style.left = startX + 'px';
+    el.style.top = (-60 - Math.random()*30) + 'px';
+    el.style.opacity = 0.98;
 
-    bit.style.left = x + 'px';
-    bit.style.opacity = 0.96;
+  if(emoji){ el.textContent = emoji; }
+  else if(text){ el.textContent = text; }
+  // avoid CSS keyframe fall interfering with our JS transition
+  el.classList.remove('falling');
+    if(color){ el.style.color = color; }
 
-    if(emoji){ bit.textContent = emoji; }
-    else if(text){ bit.textContent = text; }
-    if(color){ bit.style.color = color; }
+    stage.appendChild(el);
 
-    stage.appendChild(bit);
+    // compute target column/position on cake
+    const centerX = startX + (el.offsetWidth/2 || 8);
+    const target = stacking.getTarget(centerX);
 
-    bit.addEventListener('animationend', ()=> {
-      const cr = cakeRect();
-      const bx = bit.getBoundingClientRect().left + bit.offsetWidth/2;
-      if(bx > cr.left && bx < cr.right){
-        stacking.placeAt(bx, bit);
-      } else {
-        bit.remove();
-      }
+    // candles behave slightly differently: keep them on surface but do not occupy stack columns
+    const isCandle = el.classList.contains('candle');
+    // if candle, pick a pastel color from root variable list
+    if(isCandle){
+      const colors = getComputedStyle(document.documentElement)
+        .getPropertyValue('--candle-colors').split(',').map(s=>s.trim()).filter(Boolean);
+      const c = colors[Math.floor(Math.random()*Math.max(1,colors.length))] || '#ffd6e6';
+      el.style.background = `linear-gradient(to bottom, ${c}, #ffffff)`;
+      el.style.width = '6px';
+      el.style.height = '110px';
+      el.style.borderRadius = '3px';
+    }
+    const targetLeft = isCandle ? (target.left + randomBetween(-16,16)) : target.left;
+    const targetTop = isCandle ? (stacking.baseTop - 4) : target.top;
+
+    // animate to target using transition (duration proportional to distance)
+    const dist = Math.abs((parseFloat(el.style.top) || -60) - targetTop);
+    const dur = Math.max(0.35, Math.min(1.2, dist / 600));
+    el.style.transition = `top ${dur}s linear, left ${dur}s linear, opacity ${dur}s linear`;
+
+    // force reflow then set final position
+    void el.offsetWidth;
+    el.style.left = targetLeft + 'px';
+    el.style.top = targetTop + 'px';
+
+    el.addEventListener('transitionend', function onEnd(ev){
+      if(ev.propertyName !== 'top') return;
+      el.removeEventListener('transitionend', onEnd);
+      el.style.transition = '';
+      el.style.left = targetLeft + 'px';
+      el.style.top = targetTop + 'px';
+      el.classList.remove('falling');
+      // occupy the column only for non-candles
+      if(!isCandle) stacking.occupy(target.col);
     });
 
     // Optional group cascade (3 quick neighbors)
@@ -372,10 +366,8 @@
   function randomFruit(){ return fruits[Math.floor(Math.random()*fruits.length)]; }
 
   function maybeSurprise(){
-    // Every 10th press → giant watermelon
-    if(keyPressCount > 0 && keyPressCount % 10 === 0){
-      spawnBit({ emoji:'🍉', className:'topping', fromRoof:true, giant:true, group:true });
-    }
+    // reserved for small surprises (disabled watermelon)
+    return;
   }
 
   function handleKeyDown(e){
@@ -450,14 +442,13 @@
   });
   setTimeout(()=> hud.classList.add('hidden'), 5200);
 
-  // Reset pill button
-  resetBtn.addEventListener('click', guestEat);
+  // Reset is handled via Enter key only (button removed)
 
   window.addEventListener('keydown', handleKeyDown);
   window.addEventListener('keyup', handleKeyUp);
 
-  // Reposition candles on resize
-  window.addEventListener('resize', ()=>{ if(candlesLit) placeCandles(); });
+  // Recompute stacking on resize
+  window.addEventListener('resize', ()=> stacking.recompute());
   </script>
 </body>
 </html>
