@@ -44,85 +44,75 @@
 
     /* Plate */
     .plate{ position:absolute; left:50%; bottom:4%; transform:translateX(-50%);
-      width: 56vw; height: 2.6vw; min-height:18px; 
-      background: linear-gradient(135deg, #f8fbff 0%, var(--plate) 50%, #e6f3ff 100%);
-      border-radius: 80px; 
-      box-shadow: 
-        0 24px 40px rgba(0,0,0,0.25),
-        0 8px 16px rgba(0,0,0,0.1),
-        inset 0 2px 0 rgba(255,255,255,0.3);
-      border: 1px solid rgba(255,255,255,0.2);
+      width: 56vw; height: 2.6vw; min-height:18px; background: var(--plate);
+      border-radius: 80px; filter: drop-shadow(0 24px 40px rgba(0,0,0,0.35));
     }
     /* Cake body */
     .cake{ position:absolute; left:50%; bottom:7.5%; transform:translateX(-50%);
       width: 48vw; max-width: 900px; min-width: 360px; height: 24vw; min-height: 240px;
-      background: linear-gradient(180deg, #fff2f0 0%, #ffe7de 40%, var(--cake) 80%, #ffb5c9 100%); 
-      border-radius: 28px; overflow:visible;
+      background: linear-gradient(180deg, #ffeee8 0%, #ffe7de 30%, var(--cake) 100%); 
+      border-radius: 24px; overflow:visible;
       box-shadow: 
-        0 8px 32px rgba(255, 181, 201, 0.3),
-        0 32px 64px rgba(0,0,0,0.12),
-        inset 0 2px 0 rgba(255,255,255,0.2);
-      border: 2px solid rgba(255,255,255,0.1);
+        inset 0 -20px 0 #ffb5c9,
+        inset 0 -40px 0 rgba(255, 181, 201, 0.6),
+        0 40px 80px rgba(0,0,0,0.15);
     }
     
-    /* Beautiful cream frosting on top */
-    .cake::before{
-      content:""; position:absolute; left:0; right:0; top:-12px; height: 28px; 
-      background: linear-gradient(135deg, #fff9fc 0%, #ffeef5 25%, #fff2f0 50%, #ffeef5 75%, #fff9fc 100%);
-      border-radius: 40px;
-      box-shadow: 
-        0 4px 12px rgba(255, 181, 201, 0.2),
-        inset 0 2px 0 rgba(255,255,255,0.4),
-        inset 0 -2px 0 rgba(255, 181, 201, 0.1);
-      background-image: 
-        radial-gradient(ellipse 18px 6px at 12% 50%, rgba(255,255,255,0.6) 0%, transparent 80%),
-        radial-gradient(ellipse 22px 8px at 28% 50%, rgba(255,255,255,0.4) 0%, transparent 80%),
-        radial-gradient(ellipse 16px 5px at 45% 50%, rgba(255,255,255,0.7) 0%, transparent 80%),
-        radial-gradient(ellipse 20px 7px at 62% 50%, rgba(255,255,255,0.5) 0%, transparent 80%),
-        radial-gradient(ellipse 19px 6px at 78% 50%, rgba(255,255,255,0.6) 0%, transparent 80%),
-        radial-gradient(ellipse 15px 5px at 90% 50%, rgba(255,255,255,0.8) 0%, transparent 80%);
-      z-index: 3;
-    }
-    
-    /* Elegant bottom border */
+    /* Shell icing border at bottom */
     .cake::after{ 
-      content:""; position:absolute; left:0; right:0; bottom:-6px; height: 20px; 
-      background: linear-gradient(180deg, #ffb5c9 0%, #ffa8c5 50%, #ff9bc0 100%);
-      border-radius: 0 0 28px 28px;
+      content:""; position:absolute; left:0; right:0; bottom:-8px; height: 32px; 
+      background: linear-gradient(90deg, #ffb5c9 0%, #ffc9d4 25%, #ffb5c9 50%, #ffc9d4 75%, #ffb5c9 100%);
+      border-radius: 0 0 24px 24px;
+      background-image: 
+        repeating-linear-gradient(90deg, 
+          transparent 0px, 
+          transparent 8px, 
+          rgba(255,255,255,0.3) 8px, 
+          rgba(255,255,255,0.3) 12px, 
+          transparent 12px, 
+          transparent 20px
+        ),
+        radial-gradient(ellipse 15px 8px at 8% 40%, rgba(255,255,255,0.4) 0%, transparent 100%),
+        radial-gradient(ellipse 12px 6px at 20% 60%, rgba(255,255,255,0.3) 0%, transparent 100%),
+        radial-gradient(ellipse 18px 9px at 35% 45%, rgba(255,255,255,0.4) 0%, transparent 100%),
+        radial-gradient(ellipse 14px 7px at 50% 55%, rgba(255,255,255,0.3) 0%, transparent 100%),
+        radial-gradient(ellipse 16px 8px at 65% 40%, rgba(255,255,255,0.4) 0%, transparent 100%),
+        radial-gradient(ellipse 13px 6px at 80% 60%, rgba(255,255,255,0.3) 0%, transparent 100%),
+        radial-gradient(ellipse 15px 8px at 92% 45%, rgba(255,255,255,0.4) 0%, transparent 100%);
       box-shadow: 
-        0 4px 8px rgba(255, 155, 192, 0.3),
-        inset 0 2px 0 rgba(255,255,255,0.2);
+        inset 0 3px 0 rgba(255,255,255,0.2),
+        inset 0 -3px 0 rgba(255,181,201,0.4),
+        0 4px 8px rgba(0,0,0,0.1);
       z-index: 2;
+    }
+    
+    /* Cream waves on top */
+    .cake::before{
+      content:""; position:absolute; left:0; right:0; top:-8px; height: 24px; 
+      background: linear-gradient(90deg, #fff9fc 0%, #ffeef5 50%, #fff9fc 100%);
+      border-radius: 50px;
+      background-image: 
+        radial-gradient(ellipse 20px 8px at 15% 50%, rgba(255,255,255,0.8) 0%, transparent 70%),
+        radial-gradient(ellipse 25px 10px at 35% 50%, rgba(255,255,255,0.6) 0%, transparent 70%),
+        radial-gradient(ellipse 18px 7px at 55% 50%, rgba(255,255,255,0.8) 0%, transparent 70%),
+        radial-gradient(ellipse 22px 9px at 75% 50%, rgba(255,255,255,0.7) 0%, transparent 70%),
+        radial-gradient(ellipse 20px 8px at 90% 50%, rgba(255,255,255,0.8) 0%, transparent 70%);
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+      z-index: 1;
     }
 
     /* Candles */
     .candle{ 
       position:absolute; 
-      bottom: calc(24vw + 5px);
-      width: 6px;
-      height: 180px;
-      border-radius: 3px;
-      background: linear-gradient(to bottom, var(--accent) 0%, #ffeef5 85%, #ffffff 100%);
+      bottom: calc(24vw + 15px);
+      width: 5px;
+      height: 140px;
+      border-radius: 2.5px;
+      background: linear-gradient(to bottom, var(--accent), #ffffff);
       user-select:none;
       transform-origin: bottom center;
       transition: all 0.3s ease;
-      box-shadow: 
-        0 2px 8px rgba(0, 0, 0, 0.1),
-        inset 1px 0 0 rgba(255,255,255,0.3),
-        inset -1px 0 0 rgba(0,0,0,0.1);
-      z-index: 10;
-    }
-    .candle::before {
-      content: "";
-      position: absolute;
-      bottom: -10px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 12px;
-      height: 12px;
-      background: radial-gradient(circle, #ffb5c9 30%, var(--cake) 70%);
-      border-radius: 50%;
-      box-shadow: inset 0 2px 0 rgba(255,255,255,0.2);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
     .candle.lit {
       filter: drop-shadow(0 0 8px rgba(255, 200, 100, 0.5));
