@@ -16,9 +16,8 @@
     *{box-sizing:border-box}
     html,body{height:100%;margin:0}
     body{
-      /* darker pastel edges for better contrast with the cake */
-      background: radial-gradient(1200px 600px at 50% 80%, #fff6fb 0%, #f1e7f6 35%, #e1d1ea 65%, #cbb8dd 100%);
-      color:#4a324a;font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      background: radial-gradient(1200px 600px at 50% 80%, #ffeef5 0%, #e9f5ff 60%, #fff6e9 100%);
+      color:#6a5d7b;font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
       overflow:hidden;
     }
     #hud{
@@ -41,7 +40,7 @@
 
     #stage{position:relative; width:100%; height:100%;}
 
-  /* roof removed intentionally */
+    /* Empty roof section removed */
 
     /* Plate */
     .plate{ position:absolute; left:50%; bottom:4%; transform:translateX(-50%);
@@ -51,27 +50,64 @@
     /* Cake body */
     .cake{ position:absolute; left:50%; bottom:7.5%; transform:translateX(-50%);
       width: 48vw; max-width: 900px; min-width: 360px; height: 24vw; min-height: 240px;
-      background: linear-gradient(#ffe7de, var(--cake)); border-radius: 24px; overflow:visible;
-      box-shadow: inset 0 -16px 0 var(--icing), 0 40px 80px rgba(0,0,0,0.15);
+      background: linear-gradient(180deg, #ffeee8 0%, #ffe7de 30%, var(--cake) 100%); 
+      border-radius: 24px; overflow:visible;
+      box-shadow: 
+        inset 0 -20px 0 #ffb5c9,
+        inset 0 -40px 0 rgba(255, 181, 201, 0.6),
+        0 40px 80px rgba(0,0,0,0.15);
     }
-    .cake::after{ /* icing drip rim */
-      content:""; position:absolute; left:0; right:0; top:0; height: 44px; border-radius:24px 24px 0 0;
-      background: linear-gradient(180deg, var(--icing), #ffdbe9 80%);
-      mask: radial-gradient(30px 12px at 8% 14px, #000 95%, transparent 100%),
-            radial-gradient(40px 16px at 30% 14px, #000 95%, transparent 100%),
-            radial-gradient(28px 12px at 54% 14px, #000 95%, transparent 100%),
-            radial-gradient(36px 12px at 74% 14px, #000 95%, transparent 100%),
-            radial-gradient(30px 12px at 90% 14px, #000 95%, transparent 100%);
-      mask-composite: exclude;
+    
+    /* Shell icing border at bottom */
+    .cake::after{ 
+      content:""; position:absolute; left:0; right:0; bottom:-8px; height: 32px; 
+      background: linear-gradient(90deg, #ffb5c9 0%, #ffc9d4 25%, #ffb5c9 50%, #ffc9d4 75%, #ffb5c9 100%);
+      border-radius: 0 0 24px 24px;
+      background-image: 
+        repeating-linear-gradient(90deg, 
+          transparent 0px, 
+          transparent 8px, 
+          rgba(255,255,255,0.3) 8px, 
+          rgba(255,255,255,0.3) 12px, 
+          transparent 12px, 
+          transparent 20px
+        ),
+        radial-gradient(ellipse 15px 8px at 8% 40%, rgba(255,255,255,0.4) 0%, transparent 100%),
+        radial-gradient(ellipse 12px 6px at 20% 60%, rgba(255,255,255,0.3) 0%, transparent 100%),
+        radial-gradient(ellipse 18px 9px at 35% 45%, rgba(255,255,255,0.4) 0%, transparent 100%),
+        radial-gradient(ellipse 14px 7px at 50% 55%, rgba(255,255,255,0.3) 0%, transparent 100%),
+        radial-gradient(ellipse 16px 8px at 65% 40%, rgba(255,255,255,0.4) 0%, transparent 100%),
+        radial-gradient(ellipse 13px 6px at 80% 60%, rgba(255,255,255,0.3) 0%, transparent 100%),
+        radial-gradient(ellipse 15px 8px at 92% 45%, rgba(255,255,255,0.4) 0%, transparent 100%);
+      box-shadow: 
+        inset 0 3px 0 rgba(255,255,255,0.2),
+        inset 0 -3px 0 rgba(255,181,201,0.4),
+        0 4px 8px rgba(0,0,0,0.1);
+      z-index: 2;
+    }
+    
+    /* Cream waves on top */
+    .cake::before{
+      content:""; position:absolute; left:0; right:0; top:-8px; height: 24px; 
+      background: linear-gradient(90deg, #fff9fc 0%, #ffeef5 50%, #fff9fc 100%);
+      border-radius: 50px;
+      background-image: 
+        radial-gradient(ellipse 20px 8px at 15% 50%, rgba(255,255,255,0.8) 0%, transparent 70%),
+        radial-gradient(ellipse 25px 10px at 35% 50%, rgba(255,255,255,0.6) 0%, transparent 70%),
+        radial-gradient(ellipse 18px 7px at 55% 50%, rgba(255,255,255,0.8) 0%, transparent 70%),
+        radial-gradient(ellipse 22px 9px at 75% 50%, rgba(255,255,255,0.7) 0%, transparent 70%),
+        radial-gradient(ellipse 20px 8px at 90% 50%, rgba(255,255,255,0.8) 0%, transparent 70%);
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+      z-index: 1;
     }
 
     /* Candles */
     .candle{ 
       position:absolute; 
-      bottom: calc(24vw - 8px);
-      width: 4px;
-      height: 100px;
-      border-radius: 2px;
+      bottom: calc(24vw + 15px);
+      width: 5px;
+      height: 140px;
+      border-radius: 2.5px;
       background: linear-gradient(to bottom, var(--accent), #ffffff);
       user-select:none;
       transform-origin: bottom center;
@@ -136,10 +172,10 @@
   <div id="hud-toggle" title="도움말 보기/숨기기">?</div>
   <div id="hud">
     <div><strong>Make a Cake with Me! - Naeun Kim</strong></div>
-  <div class="mini">글자가 케이크에 쌓여요 • 손님이 가져가요 🍰 → <kbd>Enter</kbd>로 초기화</div>
+    <div class="mini">글자가 케이크에 쌓여요 • 손님이 가져가요 🍰 → <kbd>Enter</kbd> 또는 버튼</div>
     <div>일반 키: <em>글자</em>가 케이크에 층층이 쌓여요</div>
     <div><kbd>Space</kbd>: 촛불 켜기/끄기 / <kbd>Enter</kbd>: 손님이 가져가요(초기화)</div>
-  <div>숫자키: 스프링클</div>
+    <div>숫자키: 스프링클 • 가끔은 깜짝 수박🍉이 등장해요!</div>
     <div class="mini">과일 단축키를 찾으려면 물음표(?) 아이콘을 클릭해보세요</div>
     <div class="fruit-keys" style="display: none;">
       🍓: F키 / 🍎: A키 / 🫐: B키 / 🍒: C키 / 🍇: G키<br>
@@ -148,9 +184,12 @@
   </div>
 
   <div id="stage">
+    <div class="roof" aria-hidden="true"></div>
     <div class="plate"></div>
     <div id="cake" class="cake" aria-label="cake"></div>
   </div>
+
+  <button id="resetBtn" class="pill" title="손님이 가져가요">🫱🏻‍🍰 손님이 가져가요</button>
   <div id="footer">type to play • made for ID202 prototyping</div>
 
   <script>
@@ -207,39 +246,52 @@
   const cake  = document.getElementById('cake');
   const hud   = document.getElementById('hud');
   const hudToggle = document.getElementById('hud-toggle');
+  const resetBtn = document.getElementById('resetBtn');
   let candlesLit = false;
 
   const randomBetween = (min,max)=> Math.random()*(max-min)+min;
   function cakeRect(){ return cake.getBoundingClientRect(); }
 
-  // ===== Column stacking (non-overlapping pile) =====
+    // ===== Random pile stacking =====
   const stacking = {
-    columnsCount: 24,
-    columnWidth: 0,
-    rowHeight: 34,
     baseTop: 0,
     baseLeft: 0,
     width: 0,
-    stacks: [],
     recompute(){
       const cr = cakeRect();
+      this.baseTop = cr.top;
       this.baseLeft = cr.left;
-      this.baseTop = cr.top + 20; // surface reference
       this.width = cr.width;
-      this.columnWidth = cr.width / this.columnsCount;
-      this.stacks = new Array(this.columnsCount).fill(0);
     },
-    getTarget(xCenter){
-      // clamp and resolve column index
-      const localX = Math.max(0, Math.min(xCenter - this.baseLeft, this.width - 1));
-      const columnIndex = Math.floor(localX / this.columnWidth);
-      const col = Math.max(0, Math.min(this.columnsCount - 1, columnIndex));
-      const level = this.stacks[col] || 0;
-      const left = this.baseLeft + col * this.columnWidth + this.columnWidth/2 + randomBetween(-8,8);
-      const top = this.baseTop - (level * this.rowHeight);
-      return { left, top, col };
+    placeAt(xCenter, node){
+      const cr = cakeRect();
+      const surfaceY = cr.top + 20; // Slightly below cake top surface
+      
+      if (node.classList.contains('candle')) {
+        // Random candle color from root variables
+        const colors = getComputedStyle(document.documentElement)
+          .getPropertyValue('--candle-colors').split(',');
+        const color = colors[Math.floor(Math.random() * colors.length)].trim();
+        node.style.background = `linear-gradient(to bottom, ${color}, #ffffff)`;
+        
+        // Precise placement
+        const x = this.baseLeft + (this.width * (Math.random() * 0.6 + 0.2));
+        node.style.left = x + 'px';
+        node.style.transform = `rotate(${randomBetween(-2, 2)}deg)`;
+        node.classList.remove('falling');
+        return;
+      }
+      
+      // Place items near cake surface
+      const x = this.baseLeft + (this.width * 0.15) + Math.random() * (this.width * 0.7);
+      const y = surfaceY - randomBetween(0, 30); // Stack within 30px from surface
+      node.style.left = x + 'px';
+      node.style.top = y + 'px';
+      node.style.position = 'absolute';
+      node.style.zIndex = Math.floor(Math.random() * 100);
+      node.style.transform = `rotate(${randomBetween(-15, 15)}deg)`;
+      node.classList.remove('falling');
     },
-    occupy(col){ this.stacks[col] = (this.stacks[col] || 0) + 1; },
     reset(){ this.recompute(); }
   };
 
@@ -247,73 +299,63 @@
   window.addEventListener('load', ()=> stacking.recompute());
   window.addEventListener('resize', ()=> stacking.recompute());
 
-  // Candles are created by special-character keys (see input handler).
-  // Lighting is controlled by toggling the "lit" class on existing .candle elements.
+  // ===== Candles =====
+  function placeCandles(){
+    [...document.querySelectorAll('.candle')].forEach(c=>c.remove());
+    const cr = cakeRect();
+    const count = 5;
+    for(let i=0;i<count;i++){
+      const c = document.createElement('div');
+      c.className = 'candle';
+      c.innerHTML = '<div class="flame">�</div>';
+      const x = (cr.left + (cr.width*(0.15 + i*(0.7/(count-1))))) - 14;
+      c.style.left = x + 'px';
+      stage.appendChild(c);
+    }
+  }
+  function toggleCandles(){
+    candlesLit = !candlesLit;
+    if(candlesLit){
+      placeCandles();
+      document.body.classList.add('warm');
+      candleOn();
+    } else {
+      document.body.classList.remove('warm');
+      candleOff();
+      [...document.querySelectorAll('.candle')].forEach(c=>c.remove());
+    }
+  }
 
   // ===== Spawn helpers =====
   function spawnBit({ text, className, emoji, color, fromRoof=false, giant=false, group=false, node=null }){
-    // node: optionally pass a pre-created element (used for candles)
-    let el = node || document.createElement('div');
-    if(!node){
-      el.className = 'bit ' + (className||'');
-    }
-    if(giant) el.classList.add('giant');
+    const bit = node || document.createElement('div');
+    bit.className = 'bit falling ' + (className||'');
+    if(giant) bit.classList.add('giant');
+    bit.style.setProperty('--dur', (randomBetween(2.0, 3.6)).toFixed(2)+'s');
 
-    // initial placement (start above the visible area)
     const stageRect = stage.getBoundingClientRect();
-    const cakeRectLocal = cakeRect();
-    const startX = fromRoof ? (cakeRectLocal.left + Math.random() * cakeRectLocal.width) : (stageRect.left + stageRect.width * (0.18 + Math.random()*0.64));
-    el.style.position = 'absolute';
-    el.style.left = startX + 'px';
-    el.style.top = (-60 - Math.random()*30) + 'px';
-    el.style.opacity = 0.98;
+    const roof = document.querySelector('.roof').getBoundingClientRect();
+    const x = fromRoof
+      ? randomBetween(roof.left + 20, roof.right - 20)
+      : randomBetween(stageRect.width*0.18, stageRect.width*0.82);
 
-  if(emoji){ el.textContent = emoji; }
-  else if(text){ el.textContent = text; }
-  // avoid CSS keyframe fall interfering with our JS transition
-  el.classList.remove('falling');
-    if(color){ el.style.color = color; }
+    bit.style.left = x + 'px';
+    bit.style.opacity = 0.96;
 
-    stage.appendChild(el);
+    if(emoji){ bit.textContent = emoji; }
+    else if(text){ bit.textContent = text; }
+    if(color){ bit.style.color = color; }
 
-    // compute target column/position on cake
-    const centerX = startX + (el.offsetWidth/2 || 8);
-    const target = stacking.getTarget(centerX);
+    stage.appendChild(bit);
 
-    // candles behave slightly differently: keep them on surface but do not occupy stack columns
-    const isCandle = el.classList.contains('candle');
-    // if candle, pick a pastel color from root variable list
-    if(isCandle){
-      const colors = getComputedStyle(document.documentElement)
-        .getPropertyValue('--candle-colors').split(',').map(s=>s.trim()).filter(Boolean);
-      const c = colors[Math.floor(Math.random()*Math.max(1,colors.length))] || '#ffd6e6';
-      el.style.background = `linear-gradient(to bottom, ${c}, #ffffff)`;
-      el.style.width = '6px';
-      el.style.height = '110px';
-      el.style.borderRadius = '3px';
-    }
-    const targetLeft = isCandle ? (target.left + randomBetween(-16,16)) : target.left;
-    const targetTop = isCandle ? (stacking.baseTop - 4) : target.top;
-
-    // animate to target using transition (duration proportional to distance)
-    const dist = Math.abs((parseFloat(el.style.top) || -60) - targetTop);
-    const dur = Math.max(0.35, Math.min(1.2, dist / 600));
-    el.style.transition = `top ${dur}s linear, left ${dur}s linear, opacity ${dur}s linear`;
-
-    // force reflow then set final position
-    void el.offsetWidth;
-    el.style.left = targetLeft + 'px';
-    el.style.top = targetTop + 'px';
-
-    el.addEventListener('transitionend', function onEnd(ev){
-      if(ev.propertyName !== 'top') return;
-      el.removeEventListener('transitionend', onEnd);
-      el.style.transition = '';
-      el.style.left = targetLeft + 'px';
-      el.style.top = targetTop + 'px';
-      el.classList.remove('falling');
-      // occupy the column only for non-candles
-      if(!isCandle) stacking.occupy(target.col);
+    bit.addEventListener('animationend', ()=> {
+      const cr = cakeRect();
+      const bx = bit.getBoundingClientRect().left + bit.offsetWidth/2;
+      if(bx > cr.left && bx < cr.right){
+        stacking.placeAt(bx, bit);
+      } else {
+        bit.remove();
+      }
     });
 
     // Optional group cascade (3 quick neighbors)
@@ -335,7 +377,16 @@
     s.style.background = palette[Math.floor(randomBetween(0, palette.length))];
     s.style.setProperty('--dur', (randomBetween(1.6, 2.6)).toFixed(2)+'s');
     stage.appendChild(s);
-    s.addEventListener('animationend', ()=> s.remove());
+    
+    s.addEventListener('animationend', ()=> {
+      const cr = cakeRect();
+      const sx = s.getBoundingClientRect().left + s.offsetWidth/2;
+      if(sx > cr.left && sx < cr.right){
+        stacking.placeAt(sx, s);
+      } else {
+        s.remove();
+      }
+    });
   }
 
   // ===== Guest arrives (reset) =====
@@ -366,8 +417,10 @@
   function randomFruit(){ return fruits[Math.floor(Math.random()*fruits.length)]; }
 
   function maybeSurprise(){
-    // reserved for small surprises (disabled watermelon)
-    return;
+    // Every 10th press → giant watermelon
+    if(keyPressCount > 0 && keyPressCount % 10 === 0){
+      spawnBit({ emoji:'🍉', className:'topping', fromRoof:true, giant:true, group:true });
+    }
   }
 
   function handleKeyDown(e){
@@ -442,13 +495,14 @@
   });
   setTimeout(()=> hud.classList.add('hidden'), 5200);
 
-  // Reset is handled via Enter key only (button removed)
+  // Reset pill button
+  resetBtn.addEventListener('click', guestEat);
 
   window.addEventListener('keydown', handleKeyDown);
   window.addEventListener('keyup', handleKeyUp);
 
-  // Recompute stacking on resize
-  window.addEventListener('resize', ()=> stacking.recompute());
+  // Reposition candles on resize
+  window.addEventListener('resize', ()=>{ if(candlesLit) placeCandles(); });
   </script>
 </body>
 </html>
