@@ -106,9 +106,15 @@
       position:absolute; 
       bottom: calc(24vw + 15px);
       width: 5px;
-      height: 140px;
+      height: 180px; /* 더 길게 */
       border-radius: 2.5px;
-      background: linear-gradient(to bottom, var(--accent), #ffffff);
+      background:
+        repeating-linear-gradient(
+          45deg,
+          #fff 0px, #fff 6px,
+          transparent 6px, transparent 12px
+        ),
+        linear-gradient(to bottom, var(--accent), #ffffff);
       user-select:none;
       transform-origin: bottom center;
       transition: all 0.3s ease;
@@ -154,8 +160,11 @@
     .falling{ animation: fall linear var(--dur,3.2s); }
     .eaten{ animation: eat 900ms ease-in forwards; }
 
-    /* Room lighting when candles on */
-    .warm{ background: radial-gradient(1200px 600px at 50% 65%, #3a2b1d 0%, #1b1d29 40%, var(--bg) 75%); }
+    /* Room lighting when candles on - 더 어둡고 극적인 효과 */
+    .warm{
+      background: radial-gradient(1200px 600px at 50% 65%, #2a1a0d 0%, #1b1d29 40%, #2d1933 70%, #1a1a24 90%, var(--bg) 100%);
+      transition: background 0.5s cubic-bezier(.4,0,.2,1);
+    }
 
     /* Guest hand */
     .hand{ position:absolute; right:-20vw; top:40%; font-size: clamp(42px, 6vw, 100px); filter: drop-shadow(0 8px 14px rgba(0,0,0,0.35));}
@@ -192,6 +201,7 @@
   </div>
 
   <button id="resetBtn" class="pill" title="손님이 가져가요">🫱🏻‍🍰 손님이 가져가요</button>
+  <div id="happyBirthday" style="display:none;position:absolute;top:10vw;left:50%;transform:translateX(-50%);font-size:3vw;font-weight:bold;color:#ff69b4;text-shadow:0 2px 8px #fff,0 0 20px #ff69b4;z-index:999;">Happy Birthday!</div>
   <div id="footer">type to play • made for ID202 prototyping</div>
 
   <script>
@@ -232,15 +242,23 @@
     candleOsc.connect(candleGain).connect(ac.destination);
     const now = ac.currentTime;
     candleGain.gain.linearRampToValueAtTime(0.06, now + 0.6);
-    candleOsc.start();
+  candleOsc.start();
+  // Happy Birthday! 노출: 실제 케이크에 초가 있을 때만 표시
+  setTimeout(()=>{
+    if(document.querySelector('.candle')){
+      document.getElementById('happyBirthday').style.display = 'block';
+    }
+  }, 100);
   }
   function candleOff(){
     if(!candleGain || !candleOsc) return;
     const ac = getAudioContext();
     const now = ac.currentTime;
     candleGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.2);
-    candleOsc.stop(now + 0.25);
-    candleGain = null; candleOsc = null;
+  candleOsc.stop(now + 0.25);
+  candleGain = null; candleOsc = null;
+  // Happy Birthday! 숨김
+  document.getElementById('happyBirthday').style.display = 'none';
   }
 
   // ===== Scene =====
@@ -333,10 +351,25 @@
 
     stage.appendChild(bit);
 
-    // Calculate landing position
-    const startTopPx = parseFloat(getComputedStyle(bit).top) || -40;
-    const targetY_vp = landingYOnCake();
+    // ===== X좌표별로 쌓임 로직 개선 =====
+    const cr = cakeRect();
+    let bitHeight = bit.offsetHeight || 40;
+    if(bit.classList.contains('giant')) bitHeight = 120;
+    else if(bit.classList.contains('topping')) bitHeight = 68;
+    const surfaceY = cr.top + 20;
+    // 내 X좌표 중앙값
+    const myCenterX = startX + (bit.offsetWidth/2);
+    // 바로 아래에 쌓인 요소가 있는지 확인 (X좌표가 거의 같은 것)
+    const bitsOnCake = Array.from(document.querySelectorAll('.bit')).filter(b => {
+      if(b.classList.contains('falling')) return false;
+      const bx = b.getBoundingClientRect().left + b.offsetWidth/2;
+      return Math.abs(bx - myCenterX) < 20;
+    });
+    // 2개까지는 표면에 바로, 3번째부터 위로 쌓임
+    const stackIndex = Math.max(0, bitsOnCake.length - 2);
+    const targetY_vp = surfaceY - randomBetween(0, 30) - (stackIndex * (bitHeight * 0.6)); // Adjusted for 40% overlap
     bit.dataset.targetY_vp = targetY_vp;
+    const startTopPx = parseFloat(getComputedStyle(bit).top) || -40;
     const fallDistance = (targetY_vp - stageRect.top) - startTopPx;
     bit.style.setProperty('--fallY', `${fallDistance}px`);
 
@@ -345,13 +378,29 @@
     bit.style.zIndex = Math.floor(Math.random() * 100);
 
     bit.addEventListener('animationend', ()=> {
-      const cr = cakeRect();
+      const cr2 = cakeRect();
       const centerX = bit.getBoundingClientRect().left + bit.offsetWidth/2;
-
-      if(centerX > cr.left && centerX < cr.right){
+      if(centerX > cr2.left && centerX < cr2.right){
         // Fix position without transform
         const stageTop = stage.getBoundingClientRect().top;
-        const finalTop = (parseFloat(bit.dataset.targetY_vp) - stageTop);
+        // 바로 아래에 쌓인 요소(bottom 기준) 찾기
+        const bitsOnCake2 = Array.from(document.querySelectorAll('.bit')).filter(b => {
+          if(b.classList.contains('falling') || b === bit) return false;
+          const bx = b.getBoundingClientRect().left + b.offsetWidth/2;
+          return Math.abs(bx - centerX) < 20;
+        });
+        // 아래에 쌓인 요소가 있으면 그 중 가장 위(bottom이 가장 큰 것) 바로 위에 붙임
+        let finalTop;
+        if(bitsOnCake2.length > 0){
+          // 2개까지는 표면에 바로, 3번째부터 위로 쌓임
+          const sorted = bitsOnCake2.sort((a,b)=>a.getBoundingClientRect().top-b.getBoundingClientRect().top);
+          const base = sorted[Math.min(1,sorted.length-1)]; // 2개까지는 표면에
+          // base의 top에서 자신의 높이만큼 위로 쌓임
+          finalTop = base.getBoundingClientRect().top - bit.offsetHeight - stageTop;
+        } else {
+          // 케이크 표면에 바로
+          finalTop = (cr2.top + 20) - stageTop;
+        }
         bit.style.top = `${finalTop}px`;
         bit.style.transform = `rotate(${bit.dataset.landRot}deg)`;
         bit.style.animation = 'none';
@@ -398,11 +447,24 @@
     s.addEventListener('animationend', ()=> {
       const cr = cakeRect();
       const centerX = s.getBoundingClientRect().left + s.offsetWidth/2;
-      
       if(centerX > cr.left && centerX < cr.right){
-        // Fix position without transform
+        // stacking: 같은 X좌표에 쌓인 sprinkle 찾기
         const stageTop = stage.getBoundingClientRect().top;
-        const finalTop = (parseFloat(s.dataset.targetY_vp) - stageTop);
+        const sprinklesOnCake = Array.from(document.querySelectorAll('.sprinkle')).filter(b => {
+          if(b.classList.contains('falling') || b === s) return false;
+          const bx = b.getBoundingClientRect().left + b.offsetWidth/2;
+          return Math.abs(bx - centerX) < 20;
+        });
+        let finalTop;
+        if(sprinklesOnCake.length > 0){
+          // 가장 위에 있는 sprinkle 위에 40% 겹쳐서 쌓기
+          const sorted = sprinklesOnCake.sort((a,b)=>a.getBoundingClientRect().top-b.getBoundingClientRect().top);
+          const base = sorted[sprinklesOnCake.length-1];
+          finalTop = base.getBoundingClientRect().top - s.offsetHeight * 0.6 - stageTop;
+        } else {
+          // 케이크 표면에 바로
+          finalTop = (cr.top + 20) - stageTop;
+        }
         s.style.top = `${finalTop}px`;
         s.style.transform = `rotate(${s.dataset.landRot}deg)`;
         s.style.animation = 'none';
@@ -415,21 +477,81 @@
 
   // ===== Guest arrives (reset) =====
   function guestEat(){
-    const hand = document.createElement('div');
-    hand.className = 'hand';
-    hand.textContent = '🫱🏻\u200d🍰';
-    stage.appendChild(hand);
+    // 박스 동적 생성 (케이크 전체 가릴 크기)
+    const cakeRect = cake.getBoundingClientRect();
+    const stageRect = stage.getBoundingClientRect();
+    const box = document.createElement('div');
+    box.className = 'cakebox';
+    Object.assign(box.style, {
+      position: 'absolute',
+      left: (cakeRect.left - stageRect.left - 24) + 'px',
+      top: '-40vh',
+      width: (cakeRect.width + 48) + 'px',
+      height: (cakeRect.height + 48) + 'px',
+      background: 'rgba(255,255,255,0.96)',
+      borderRadius: '32px',
+      boxShadow: '0 12px 48px 0 rgba(0,0,0,0.18)',
+      zIndex: 9999,
+      transition: 'top 0.7s cubic-bezier(.7,-0.3,.7,1.3), width 0.7s, height 0.7s, opacity 0.7s',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      overflow: 'visible'
+    });
+    // 리본 추가
+    const ribbon = document.createElement('div');
+    ribbon.className = 'ribbon';
+    ribbon.style.cssText = `
+      position:absolute;top:-32px;left:50%;transform:translateX(-50%);
+      width:120px;height:32px;background:linear-gradient(90deg,#ff69b4 60%,#ffd166 100%);
+      border-radius:16px;box-shadow:0 2px 8px #ffb5c9;
+      display:block;z-index:2;`
+    box.appendChild(ribbon);
+    stage.appendChild(box);
 
-    cake.classList.add('eaten');
+    // 박스 떨어뜨리기
     setTimeout(()=>{
+      box.style.top = (cakeRect.top - stageRect.top - 24) + 'px';
+    }, 30);
+
+    // 박스가 케이크를 가리면 케이크/토핑/스프링클/초 숨김
+    setTimeout(()=>{
+      cake.style.opacity = '0';
+      [...document.querySelectorAll('.bit,.sprinkle,.candle')].forEach(n=>n.style.opacity = '0');
+    }, 700);
+
+    // 박스 작아지며 페이드아웃
+    setTimeout(()=>{
+      box.style.width = '80px';
+      box.style.height = '80px';
+      box.style.opacity = '0';
+    }, 1200);
+
+    // 박스 제거 및 케이크 리셋
+    setTimeout(()=>{
+      box.remove();
       [...document.querySelectorAll('.bit,.sprinkle,.candle')].forEach(n=>n.remove());
       document.body.classList.remove('warm');
       candleOff();
       candlesLit = false;
-      cake.classList.remove('eaten');
-      hand.remove();
       stacking.reset();
-    }, 950);
+      cake.classList.remove('eaten');
+      cake.style.opacity = '0';
+      cake.style.transition = 'none';
+      cake.style.top = '-40vh';
+
+      // 케이크 페이드인 애니메이션 (드롭 없이)
+      setTimeout(()=>{
+        cake.style.transition = 'opacity 0.8s';
+        cake.style.opacity = '1';
+        setTimeout(()=>{
+          cake.style.transition = '';
+        }, 900);
+      }, 400); // 박스가 완전히 사라진 뒤에 케이크 페이드인
+    }, 1800);
+  // 함수 끝 중괄호 제거 (문법 오류 수정)
+
+  // 엔터키 매핑은 handleKeyDown에서 처리
   }
 
   // ===== Input handling + playful surprises =====
@@ -447,6 +569,11 @@
   }
 
   function handleKeyDown(e){
+    // 엔터키로 케이크 가져가기
+    if(e.key === 'Enter'){
+      guestEat();
+      return;
+    }
     if(e.key === ' '){ e.preventDefault(); }
     if(audioContext && audioContext.state === 'suspended') audioContext.resume();
 
@@ -455,7 +582,6 @@
       keyDownTimes.set(e.key, Date.now());
     }
 
-    // HUD toggle with '?'
     if(e.key === '?' || (e.shiftKey && e.key === '/')){ hud.classList.toggle('hidden'); return; }
 
     // Space toggles candle lights
@@ -470,11 +596,33 @@
       return;
     }
 
-    // Special characters create candles
-    if(/^[\[\]\\;'\/.,`~!@#$%^&*()_+{}|:"<>?]$/.test(e.key)){
+    // Special characters create candles (long stick candle)
+    if(/^[\[\]\\;'\/,`~!@#$%^&*()_+{}|:\"<>?]$/.test(e.key)){
       const candle = document.createElement('div');
-      candle.className = 'bit candle falling';
-      spawnBit({ node: candle });
+      candle.className = 'candle';
+      // 착지 위치 계산
+  const cr = cakeRect();
+  // 케이크 가로 범위 내에서만 랜덤 X좌표
+  const cakeLeft = cr.left;
+  const cakeRight = cr.right;
+  const candleWidth = 5; // .candle CSS width
+  const startX = randomBetween(cakeLeft, cakeRight - candleWidth);
+  candle.style.left = startX + 'px';
+  // 캔들 높이 고려해서 아랫부분이 케이크 표면에 닿게 보정
+  const candleHeight = 140; // .candle CSS height
+  const surfaceY = cr.top + 20;
+  const targetY_vp = surfaceY - candleHeight;
+  const stageTop = stage.getBoundingClientRect().top;
+  const finalTop = (targetY_vp - stageTop);
+  candle.style.top = `${finalTop}px`;
+      candle.style.opacity = 0.96;
+      // 색상 다양화: 파스텔 팔레트에서 랜덤
+      const pastelPalette = ['#ff7a99','#ffd166','#8be9fd','#c2ff8f','#b197fc','#ffb5c9','#c9f4ff','#ffecd6'];
+      const pastelColor = pastelPalette[Math.floor(Math.random() * pastelPalette.length)];
+      candle.style.background = `linear-gradient(to bottom, ${pastelColor}, #ffffff)`;
+      // z-index
+      candle.style.zIndex = Math.floor(Math.random() * 100);
+      stage.appendChild(candle);
       blip(e.key);
       return;
     }
