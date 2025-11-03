@@ -138,15 +138,17 @@
       100% { transform: translateX(-50%) scale(1.1); opacity: 1; }
     }
 
-    /* Falling bits (letters / toppings) */
-    .bit{ position:absolute; top:-40px; font-weight:700; font-size: clamp(16px, 1.6vw, 28px); user-select:none; }
-    .bit.letter{ color:#fff; text-shadow: 0 2px 0 rgba(0,0,0,0.4), 0 0 18px rgba(255,174,213,0.35);}    
-    .bit.topping{ filter: drop-shadow(0 2px 2px rgba(0,0,0,0.35)); font-size: clamp(20px, 1.8vw, 34px);}    
-    .bit.giant{ font-size: clamp(64px, 7vw, 120px); }
+  /* Falling bits (letters / toppings) — sizes increased 200% */
+  /* Doubled the font-sizes so letters and fruit emojis appear 200% larger */
+  .bit{ position:absolute; top:-40px; font-weight:700; font-size: clamp(32px, 3.2vw, 56px); user-select:none; }
+  .bit.letter{ color:#fff; text-shadow: 0 2px 0 rgba(0,0,0,0.4), 0 0 18px rgba(255,174,213,0.35);}    
+  .bit.topping{ filter: drop-shadow(0 2px 2px rgba(0,0,0,0.35)); font-size: clamp(40px, 3.6vw, 68px);}    
+  .bit.giant{ font-size: clamp(128px, 14vw, 240px); }
 
-    .sprinkle{ width:8px; height:8px; border-radius:50%; position:absolute; top:-10px; }
+  /* Sprinkles doubled in pixel size for visual balance */
+  .sprinkle{ width:16px; height:16px; border-radius:50%; position:absolute; top:-10px; }
 
-    @keyframes fall { to { transform: translateY(86vh); opacity: 1; } }
+    @keyframes fall { to { transform: translateY(var(--fallY, 86vh)); opacity: 1; } }
     @keyframes eat  { to { transform: translateX(120vw) rotate(8deg); opacity:0 } }
 
     .falling{ animation: fall linear var(--dur,3.2s); }
@@ -252,48 +254,31 @@
   const randomBetween = (min,max)=> Math.random()*(max-min)+min;
   function cakeRect(){ return cake.getBoundingClientRect(); }
 
-    // ===== Random pile stacking =====
-  const stacking = {
-    baseTop: 0,
-    baseLeft: 0,
-    width: 0,
-    recompute(){
-      const cr = cakeRect();
-      this.baseTop = cr.top;
-      this.baseLeft = cr.left;
-      this.width = cr.width;
-    },
-    placeAt(xCenter, node){
-      const cr = cakeRect();
-      const surfaceY = cr.top + 20; // Slightly below cake top surface
-      
-      if (node.classList.contains('candle')) {
-        // Random candle color from root variables
-        const colors = getComputedStyle(document.documentElement)
-          .getPropertyValue('--candle-colors').split(',');
-        const color = colors[Math.floor(Math.random() * colors.length)].trim();
-        node.style.background = `linear-gradient(to bottom, ${color}, #ffffff)`;
-        
-        // Precise placement
-        const x = this.baseLeft + (this.width * (Math.random() * 0.6 + 0.2));
-        node.style.left = x + 'px';
-        node.style.transform = `rotate(${randomBetween(-2, 2)}deg)`;
-        node.classList.remove('falling');
-        return;
-      }
-      
-      // Place items near cake surface
-      const x = this.baseLeft + (this.width * 0.15) + Math.random() * (this.width * 0.7);
-      const y = surfaceY - randomBetween(0, 30); // Stack within 30px from surface
-      node.style.left = x + 'px';
-      node.style.top = y + 'px';
-      node.style.position = 'absolute';
-      node.style.zIndex = Math.floor(Math.random() * 100);
-      node.style.transform = `rotate(${randomBetween(-15, 15)}deg)`;
-      node.classList.remove('falling');
-    },
-    reset(){ this.recompute(); }
-  };
+  // ===== Landing position calculation =====
+  function landingYOnCake() {
+    const cr = cakeRect();
+    const surfaceY = cr.top + 20;          // 케이크 표면 기준
+    return surfaceY - randomBetween(0, 30); // 표면 근처 랜덤 착지
+  }
+
+  function getRandomXOnCake() {
+    const cr = cakeRect();
+    return cr.left + (cr.width * 0.15) + Math.random() * (cr.width * 0.7);
+  }
+
+  // Candle specific functions
+  function placeCandleOnCake(candle) {
+    const cr = cakeRect();
+    const colors = getComputedStyle(document.documentElement)
+      .getPropertyValue('--candle-colors').split(',');
+    const color = colors[Math.floor(Math.random() * colors.length)].trim();
+    candle.style.background = `linear-gradient(to bottom, ${color}, #ffffff)`;
+    
+    const x = cr.left + (cr.width * (Math.random() * 0.6 + 0.2));
+    candle.style.left = x + 'px';
+    candle.style.transform = `rotate(${randomBetween(-2, 2)}deg)`;
+    candle.classList.remove('falling');
+  }
 
   // initialize stacking after layout
   window.addEventListener('load', ()=> stacking.recompute());
@@ -334,12 +319,12 @@
     bit.style.setProperty('--dur', (randomBetween(2.0, 3.6)).toFixed(2)+'s');
 
     const stageRect = stage.getBoundingClientRect();
-    const roof = document.querySelector('.roof').getBoundingClientRect();
-    const x = fromRoof
-      ? randomBetween(roof.left + 20, roof.right - 20)
+    const roofRect = document.querySelector('.roof').getBoundingClientRect();
+    const startX = fromRoof
+      ? randomBetween(roofRect.left + 20, roofRect.right - 20)
       : randomBetween(stageRect.width*0.18, stageRect.width*0.82);
 
-    bit.style.left = x + 'px';
+    bit.style.left = startX + 'px';
     bit.style.opacity = 0.96;
 
     if(emoji){ bit.textContent = emoji; }
@@ -348,11 +333,29 @@
 
     stage.appendChild(bit);
 
+    // Calculate landing position
+    const startTopPx = parseFloat(getComputedStyle(bit).top) || -40;
+    const targetY_vp = landingYOnCake();
+    bit.dataset.targetY_vp = targetY_vp;
+    const fallDistance = (targetY_vp - stageRect.top) - startTopPx;
+    bit.style.setProperty('--fallY', `${fallDistance}px`);
+
+    // Pre-calculate landing rotation and z-index
+    bit.dataset.landRot = randomBetween(-15, 15);
+    bit.style.zIndex = Math.floor(Math.random() * 100);
+
     bit.addEventListener('animationend', ()=> {
       const cr = cakeRect();
-      const bx = bit.getBoundingClientRect().left + bit.offsetWidth/2;
-      if(bx > cr.left && bx < cr.right){
-        stacking.placeAt(bx, bit);
+      const centerX = bit.getBoundingClientRect().left + bit.offsetWidth/2;
+
+      if(centerX > cr.left && centerX < cr.right){
+        // Fix position without transform
+        const stageTop = stage.getBoundingClientRect().top;
+        const finalTop = (parseFloat(bit.dataset.targetY_vp) - stageTop);
+        bit.style.top = `${finalTop}px`;
+        bit.style.transform = `rotate(${bit.dataset.landRot}deg)`;
+        bit.style.animation = 'none';
+        bit.classList.remove('falling');
       } else {
         bit.remove();
       }
@@ -368,21 +371,42 @@
     }
   }
 
+  // 파스텔톤 색상 팔레트 - 스프링클과 글자에 공통으로 사용
+  const pastelPalette = ['#ff7a99','#ffd166','#8be9fd','#c2ff8f','#b197fc','#ffb5c9','#c9f4ff','#ffecd6'];
+  
   function sprinkle(){
     const s = document.createElement('div');
     s.className = 'sprinkle falling';
     const stageRect = stage.getBoundingClientRect();
     s.style.left = randomBetween(stageRect.width*0.2, stageRect.width*0.8)+'px';
-    const palette = ['#ff7a99','#ffd166','#8be9fd','#c2ff8f','#b197fc'];
-    s.style.background = palette[Math.floor(randomBetween(0, palette.length))];
+    s.style.background = pastelPalette[Math.floor(randomBetween(0, pastelPalette.length))];
     s.style.setProperty('--dur', (randomBetween(1.6, 2.6)).toFixed(2)+'s');
+    
+    // Pre-calculate landing position like spawnBit
+    const startTopPx = -10; // .sprinkle default top:-10px
+    const targetY_vp = landingYOnCake();
+    s.dataset.targetY_vp = targetY_vp;
+    const fallDistance = (targetY_vp - stageRect.top) - startTopPx;
+    s.style.setProperty('--fallY', `${fallDistance}px`);
+    
+    // Pre-calculate landing rotation
+    s.dataset.landRot = randomBetween(-15, 15);
+    s.style.zIndex = Math.floor(Math.random() * 100);
+    
     stage.appendChild(s);
     
     s.addEventListener('animationend', ()=> {
       const cr = cakeRect();
-      const sx = s.getBoundingClientRect().left + s.offsetWidth/2;
-      if(sx > cr.left && sx < cr.right){
-        stacking.placeAt(sx, s);
+      const centerX = s.getBoundingClientRect().left + s.offsetWidth/2;
+      
+      if(centerX > cr.left && centerX < cr.right){
+        // Fix position without transform
+        const stageTop = stage.getBoundingClientRect().top;
+        const finalTop = (parseFloat(s.dataset.targetY_vp) - stageTop);
+        s.style.top = `${finalTop}px`;
+        s.style.transform = `rotate(${s.dataset.landRot}deg)`;
+        s.style.animation = 'none';
+        s.classList.remove('falling');
       } else {
         s.remove();
       }
@@ -410,22 +434,26 @@
 
   // ===== Input handling + playful surprises =====
   const toppingMap = { 'f':'🍓','a':'🍎','b':'🫐','c':'🍒','g':'🍇','m':'🥭','k':'🥝','p':'🍑','o':'🍊','l':'🍋' };
-  const fruits = Object.values(toppingMap);
-  let keyPressCount = 0;
-  let gDownAt = 0; // long-press protection for G
+  let keyDownTimes = new Map(); // 키 눌림 시작 시간 추적
 
-  function randomFruit(){ return fruits[Math.floor(Math.random()*fruits.length)]; }
-
-  function maybeSurprise(){
-    // Every 10th press → giant watermelon
-    if(keyPressCount > 0 && keyPressCount % 10 === 0){
+  function checkLongPress(key, currentTime) {
+    const startTime = keyDownTimes.get(key);
+    if (startTime && (currentTime - startTime) >= 4000) { // 4초 이상 눌렀을 때
       spawnBit({ emoji:'🍉', className:'topping', fromRoof:true, giant:true, group:true });
+      keyDownTimes.delete(key); // 한 번 수박을 생성한 후에는 타이머 초기화
+      return true;
     }
+    return false;
   }
 
   function handleKeyDown(e){
     if(e.key === ' '){ e.preventDefault(); }
     if(audioContext && audioContext.state === 'suspended') audioContext.resume();
+
+    // 키 눌림 시작 시간 기록
+    if (!keyDownTimes.has(e.key)) {
+      keyDownTimes.set(e.key, Date.now());
+    }
 
     // HUD toggle with '?'
     if(e.key === '?' || (e.shiftKey && e.key === '/')){ hud.classList.toggle('hidden'); return; }
@@ -451,27 +479,30 @@
       return;
     }
 
-    // Numbers → sprinkles
-    if(/[0-9]/.test(e.key)){ keyPressCount++; sprinkle(); blip(e.key); maybeSurprise(); return; }
-
-    const keyLower = e.key.toLowerCase();
-
-    // Fruits via explicit hotkeys OR random fruit (20% chance) even for letters
-    if(toppingMap[keyLower] || Math.random() < 0.2){
-      keyPressCount++;
-      const emo = toppingMap[keyLower] || randomFruit();
-      spawnBit({ emoji: emo, className:'topping', fromRoof: Math.random()<0.5 });
-      blip(keyLower);
-      maybeSurprise();
+    // 키 길게 누르기 체크 (모든 키에 대해)
+    if (checkLongPress(e.key, Date.now())) {
       return;
     }
 
-    // Letters and symbols → falling letters
+    // Numbers → sprinkles
+    if(/[0-9]/.test(e.key)){ sprinkle(); blip(e.key); return; }
+
+    const keyLower = e.key.toLowerCase();
+
+    // Fruits via explicit hotkeys only
+    if(toppingMap[keyLower]){
+      const emo = toppingMap[keyLower];
+      spawnBit({ emoji: emo, className:'topping', fromRoof: Math.random()<0.5 });
+      blip(keyLower);
+      return;
+    }
+
+    // Letters and symbols → falling letters (sometimes with pastel colors)
     if(e.key.length === 1){
-      keyPressCount++;
-      spawnBit({ text: e.key, className:'letter', fromRoof: Math.random()<0.6 });
+      // 20% 확률로 파스텔 색상 적용
+      const color = Math.random() < 0.2 ? pastelPalette[Math.floor(Math.random() * pastelPalette.length)] : null;
+      spawnBit({ text: e.key, className:'letter', fromRoof: Math.random()<0.6, color: color });
       blip(e.key);
-      maybeSurprise();
       return;
     }
 
@@ -484,7 +515,8 @@
   }
 
   function handleKeyUp(e){
-    // No longer need to handle key up events
+    // 키를 뗄 때 키 눌림 시간 초기화
+    keyDownTimes.delete(e.key);
   }
 
   // HUD toggle button + auto-hide
