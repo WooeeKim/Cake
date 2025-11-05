@@ -184,17 +184,17 @@
   </style>
 </head>
 <body>
-  <div id="hud-toggle" title="도움말 보기/숨기기">?</div>
+  <div id="hud-toggle" title="Show/Hide Help">?</div>
   <div id="hud">
     <div><strong>Make a Cake with Me! - Naeun Kim</strong></div>
-    <div class="mini">The letters are piled on the cake • Guests take them 🍰 → <kbd>Enter</kbd> 또는 버튼</div>
+    <div class="mini">The letters are piled on the cake • Guests take them 🍰 → <kbd>Enter</kbd> or button</div>
     <div>Normal Key: <em></em>Letters</em> are layered on top of the cake</div>
     <div><kbd>Space</kbd>: Light/Turn off candles / <kbd>Enter</kbd>: The guest takes it (initialization)</div>
     <div>Number keys: Sprinkles • Find the Easter egg! Watermelon🍉</div>
     <div class="mini">Click the question mark (?) icon to find the fruit shortcuts</div>
     <div class="fruit-keys" style="display: none;">
       🍓: F / 🍎: A / 🫐: B / 🍒: C / 🍇: G<br>
-      🥭: M / 🥝: K / 🍑: P / 🍊: O / �: L키
+      🥭: M / 🥝: K / 🍑: P / 🍊: O / 🍋: L key
     </div>
   </div>
 
@@ -204,7 +204,7 @@
     <div id="cake" class="cake" aria-label="cake"></div>
   </div>
 
-  <button id="resetBtn" class="pill" title="손님이 가져가요">🫱🏻‍🍰 손님이 가져가요</button>
+  <button id="resetBtn" class="pill" title="Serve to guest">🫱🏻‍🍰 Serve to guest</button>
   <div id="happyBirthday" style="display:none;position:absolute;top:10vw;left:50%;transform:translateX(-50%);font-size:3vw;font-weight:bold;color:#ff69b4;text-shadow:0 2px 8px #fff,0 0 20px #ff69b4;z-index:999;">Happy Birthday!</div>
   <div id="footer">type to play • made for ID202 prototyping</div>
 
@@ -228,20 +228,20 @@ function topFruits(){
 }
 function labelForBox(lang='ko'){
   const tops = topFruits();
-  if (tops.length === 0) return {title: (lang==='ko'?'하우스 케이크':'House Cake'), sub:''};
+  if (tops.length === 0) return {title: (lang==='ko'?'House Cake':'House Cake'), sub:''};
   if (tops.length === 1){
     const n = fruitName[tops[0]]?.[lang] || tops[0];
-    return {title: (lang==='ko'? `${n} 케이크!` : `${n} Cake!`),
-            sub: (lang==='ko'?'오늘의 픽':'most-picked fruit today')};
+    return {title: (lang==='ko'? `${n} Cake!` : `${n} Cake!`),
+            sub: (lang==='ko'?'Most-picked fruit today':'most-picked fruit today')};
   }
   if (tops.length === 2){
     const a=fruitName[tops[0]]?.[lang]||tops[0], b=fruitName[tops[1]]?.[lang]||tops[1];
-    return {title: (lang==='ko'? `${a}·${b} 듀엣` : `${a} & ${b} Duet Cake`),
-            sub: (lang==='ko'?'두 가지가 나란히':'a lovely two-fruit duet')};
+    return {title: (lang==='ko'? `${a}·${b} duet` : `${a} & ${b} Duet Cake`),
+            sub: (lang==='ko'?'A lovely two-fruit duet':'a lovely two-fruit duet')};
   }
   // 3개 이상
-  return {title: (lang==='ko'?'프룻 믹스 케이크':'Fruit Medley Cake'),
-          sub: (lang==='ko'?'여러 과일의 하모니':'a harmony of fruits')};
+  return {title: (lang==='ko'?'Fruit Medley Cake':'Fruit Medley Cake'),
+          sub: (lang==='ko'?'A harmony of fruits':'a harmony of fruits')};
 }
   // ===== Audio — tiny synth & candle pad =====
   const AudioCtx = window.AudioContext || window.webkitAudioContext;
