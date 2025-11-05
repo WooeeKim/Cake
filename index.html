@@ -232,16 +232,16 @@ function labelForBox(lang='ko'){
   if (tops.length === 1){
     const n = fruitName[tops[0]]?.[lang] || tops[0];
     return {title: (lang==='ko'? `${n} Cake!` : `${n} Cake!`),
-            sub: (lang==='ko'?'Most-picked fruit today':'most-picked fruit today')};
+            sub: (lang==='ko'?'Most-picked fruit today':'Most-picked fruit today')};
   }
   if (tops.length === 2){
     const a=fruitName[tops[0]]?.[lang]||tops[0], b=fruitName[tops[1]]?.[lang]||tops[1];
-    return {title: (lang==='ko'? `${a}·${b} duet` : `${a} & ${b} Duet Cake`),
-            sub: (lang==='ko'?'A lovely two-fruit duet':'a lovely two-fruit duet')};
+    return {title: (lang==='ko'? `${a} & ${b} Duet Cake` : `${a} & ${b} Duet Cake`),
+            sub: (lang==='ko'?'A lovely two-fruit duet':'A lovely two-fruit duet')};
   }
   // 3개 이상
   return {title: (lang==='ko'?'Fruit Medley Cake':'Fruit Medley Cake'),
-          sub: (lang==='ko'?'A harmony of fruits':'a harmony of fruits')};
+          sub: (lang==='ko'?'A harmony of fruits':'A harmony of fruits')};
 }
   // ===== Audio — tiny synth & candle pad =====
   const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -776,9 +776,6 @@ function labelForBox(lang='ko'){
 
   // Reset pill button
   resetBtn.addEventListener('click', guestEat);
-
-  window.addEventListener('keydown', handleKeyDown);
-  window.addEventListener('keyup', handleKeyUp);
 
   // Reposition candles on resize
   window.addEventListener('resize', ()=>{ if(candlesLit) placeCandles(); });
