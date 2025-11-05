@@ -48,7 +48,8 @@
       border-radius: 80px; filter: drop-shadow(0 24px 40px rgba(0,0,0,0.35));
     }
     /* Cake body */
-    .cake{ position:absolute; left:50%; bottom:7.5%; transform:translateX(-50%);
+    .cake{ position:absolute; left:50%; bottom:7.5%;
+      transform: translate(-50%, var(--cakeY, 0));
       width: 48vw; max-width: 900px; min-width: 360px; height: 24vw; min-height: 240px;
       background: linear-gradient(180deg, #ffeee8 0%, #ffe7de 30%, var(--cake) 100%); 
       border-radius: 24px; overflow:visible;
@@ -56,6 +57,9 @@
         inset 0 -20px 0 #ffb5c9,
         inset 0 -40px 0 rgba(255, 181, 201, 0.6),
         0 40px 80px rgba(0,0,0,0.15);
+      opacity: 1;
+      transition: transform .7s cubic-bezier(.25,.8,.25,1), opacity .6s ease;
+      will-change: transform, opacity;
     }
     
     /* Shell icing border at bottom */
@@ -128,9 +132,9 @@
       position: absolute;
       top: -8px;
       left: 50%;
-      transform: translateX(-50%);
-      width: 12px;
-      height: 12px;
+  transform: translate(-50%, var(--cakeY, 0));
+  opacity: 1;
+  transition: transform .7s cubic-bezier(.25,.8,.25,1), opacity .6s ease;
       background: radial-gradient(circle at center, #fff7c9 20%, #ffed4a 45%, transparent 70%);
       border-radius: 50%;
       animation: flicker 1s ease-in-out infinite alternate;
@@ -180,17 +184,17 @@
   </style>
 </head>
 <body>
-  <div id="hud-toggle" title="Show/Hide Help">?</div>
+  <div id="hud-toggle" title="도움말 보기/숨기기">?</div>
   <div id="hud">
     <div><strong>Make a Cake with Me! - Naeun Kim</strong></div>
-    <div class="mini">The letters are piled on the cake • Guests take them 🍰 → <kbd>Enter</kbd> or button</div>
-    <div>Normal Key: <em></em>Letters</em> are layered on top of the cake</div>
-    <div><kbd>Space</kbd>: Light/Turn off candles / <kbd>Enter</kbd>: The guest takes it (initialization)</div>
-    <div>Number keys: Sprinkles • Find the Easter egg! Watermelon🍉</div>
-    <div class="mini">Click the question mark (?) icon to find the fruit shortcuts</div>
+    <div class="mini">글자가 케이크에 쌓여요 • 손님이 가져가요 🍰 → <kbd>Enter</kbd> 또는 버튼</div>
+    <div>일반 키: <em>글자</em>가 케이크에 층층이 쌓여요</div>
+    <div><kbd>Space</kbd>: 촛불 켜기/끄기 / <kbd>Enter</kbd>: 손님이 가져가요(초기화)</div>
+    <div>숫자키: 스프링클 • 가끔은 깜짝 수박🍉이 등장해요!</div>
+    <div class="mini">과일 단축키를 찾으려면 물음표(?) 아이콘을 클릭해보세요</div>
     <div class="fruit-keys" style="display: none;">
-      🍓: F / 🍎: A / 🫐: B / 🍒: C / 🍇: G<br>
-      🥭: M / 🥝: K / 🍑: P / 🍊: O / 🍋: L key
+      🍓: F키 / 🍎: A키 / 🫐: B키 / 🍒: C키 / 🍇: G키<br>
+      🥭: M키 / 🥝: K키 / 🍑: P키 / 🍊: O키 / �: L키
     </div>
   </div>
 
@@ -200,7 +204,7 @@
     <div id="cake" class="cake" aria-label="cake"></div>
   </div>
 
-  <button id="resetBtn" class="pill" title="Serve to guest">🫱🏻‍🍰 Serve to guest</button>
+  <button id="resetBtn" class="pill" title="손님이 가져가요">🫱🏻‍🍰 손님이 가져가요</button>
   <div id="happyBirthday" style="display:none;position:absolute;top:10vw;left:50%;transform:translateX(-50%);font-size:3vw;font-weight:bold;color:#ff69b4;text-shadow:0 2px 8px #fff,0 0 20px #ff69b4;z-index:999;">Happy Birthday!</div>
   <div id="footer">type to play • made for ID202 prototyping</div>
 
@@ -297,7 +301,7 @@ function labelForBox(lang='ko'){
 
   // ===== Scene =====
   const stage = document.getElementById('stage');
-  const cake  = document.getElementById('cake');
+  let cake  = document.getElementById('cake');
   const hud   = document.getElementById('hud');
   const hudToggle = document.getElementById('hud-toggle');
   const resetBtn = document.getElementById('resetBtn');
@@ -332,9 +336,9 @@ function labelForBox(lang='ko'){
     candle.classList.remove('falling');
   }
 
-  // initialize stacking after layout
-  window.addEventListener('load', ()=> stacking.recompute());
-  window.addEventListener('resize', ()=> stacking.recompute());
+  // initialize after layout
+  window.addEventListener('load', ()=> {});
+  window.addEventListener('resize', ()=> {});
 
   // ===== Candles =====
   function placeCandles(){
@@ -379,7 +383,10 @@ function labelForBox(lang='ko'){
     bit.style.left = startX + 'px';
     bit.style.opacity = 0.96;
 
-    if(emoji){ bit.textContent = emoji; }
+    if(emoji){
+      bit.textContent = emoji;
+      if(className==='topping') noteFruit(emoji);
+    }
     else if(text){ bit.textContent = text; }
     if(color){ bit.style.color = color; }
 
@@ -511,9 +518,41 @@ function labelForBox(lang='ko'){
 
   // ===== Guest arrives (reset) =====
   function guestEat(){
-    // 박스 동적 생성 (케이크 전체 가릴 크기)
+    // 케이크와 토핑을 래핑하는 그룹 생성
     const cakeRect = cake.getBoundingClientRect();
     const stageRect = stage.getBoundingClientRect();
+    const cakeGroup = document.createElement('div');
+    cakeGroup.className = 'cake-group';
+    cakeGroup.style.position = 'absolute';
+    cakeGroup.style.left = (cakeRect.left - stageRect.left) + 'px';
+    cakeGroup.style.top = (cakeRect.top - stageRect.top) + 'px';
+    cakeGroup.style.width = cakeRect.width + 'px';
+    cakeGroup.style.height = cakeRect.height + 'px';
+    cakeGroup.style.zIndex = 9998;
+    cakeGroup.style.transition = 'transform 0.7s cubic-bezier(.7,-0.3,.7,1.3), opacity 0.7s';
+    stage.appendChild(cakeGroup);
+    
+    // 과일과 토핑들의 위치를 먼저 캡처 (케이크를 추가하기 전에)
+    const stageTop = stage.getBoundingClientRect().top;
+    const stageLeft = stage.getBoundingClientRect().left;
+    const bitsInfo = Array.from(document.querySelectorAll('.bit,.sprinkle,.candle')).map(n=>{
+      const nRect = n.getBoundingClientRect();
+      return { element: n, left: nRect.left, top: nRect.top };
+    });
+    
+    // 케이크를 cakeGroup에 추가
+    cakeGroup.appendChild(cake);
+    
+    // 과일과 토핑들을 cakeGroup에 추가하면서 위치 재조정
+    bitsInfo.forEach(({element, left, top})=>{
+      // stage 기준 위치를 cakeGroup 기준으로 변환
+      element.style.position = 'absolute';
+      element.style.left = (left - stageLeft - (cakeRect.left - stageRect.left)) + 'px';
+      element.style.top = (top - stageTop - (cakeRect.top - stageRect.top)) + 'px';
+      cakeGroup.appendChild(element);
+    });
+
+    // 박스 생성 및 등장
     const box = document.createElement('div');
     box.className = 'cakebox';
     Object.assign(box.style, {
@@ -541,17 +580,26 @@ function labelForBox(lang='ko'){
       border-radius:16px;box-shadow:0 2px 8px #ffb5c9;
       display:block;z-index:2;`
     box.appendChild(ribbon);
+    // 타이틀/서브라인 추가
+    const {title, sub} = labelForBox('ko');
+    const titleEl = document.createElement('div');
+    titleEl.textContent = title;
+    titleEl.style.cssText = 'font-weight:800;font-size:18px;margin-top:8px;';
+    const subEl = document.createElement('div');
+    subEl.textContent = sub;
+    subEl.style.cssText = 'font-size:12px;opacity:.7;margin-top:4px;';
+    box.appendChild(titleEl); box.appendChild(subEl);
     stage.appendChild(box);
 
-    // 박스 떨어뜨리기
+    // 박스 떨어뜨리기 + 케이크그룹 transform으로 이동
     setTimeout(()=>{
       box.style.top = (cakeRect.top - stageRect.top - 24) + 'px';
+      cakeGroup.style.transform = 'translateY(24px)';
     }, 30);
 
-    // 박스가 케이크를 가리면 케이크/토핑/스프링클/초 숨김
+    // 박스가 케이크를 가리면 케이크그룹 opacity 0
     setTimeout(()=>{
-      cake.style.opacity = '0';
-      [...document.querySelectorAll('.bit,.sprinkle,.candle')].forEach(n=>n.style.opacity = '0');
+      cakeGroup.style.opacity = '0';
     }, 700);
 
     // 박스 작아지며 페이드아웃
@@ -564,28 +612,45 @@ function labelForBox(lang='ko'){
     // 박스 제거 및 케이크 리셋
     setTimeout(()=>{
       box.remove();
-      [...document.querySelectorAll('.bit,.sprinkle,.candle')].forEach(n=>n.remove());
+      cakeGroup.remove();
       document.body.classList.remove('warm');
       candleOff();
       candlesLit = false;
-      stacking.reset();
-      cake.classList.remove('eaten');
-      cake.style.opacity = '0';
-      cake.style.transition = 'none';
-      cake.style.top = '-40vh';
 
-      // 케이크 페이드인 애니메이션 (드롭 없이)
+      // 기존 케이크 엘리먼트 완전히 제거
+      if (cake.parentNode) cake.parentNode.removeChild(cake);
+
+      // 1초 후에 새로운 케이크 생성 및 초기 위치에 배치
       setTimeout(()=>{
-        cake.style.transition = 'opacity 0.8s';
-        cake.style.opacity = '1';
+        const newCake = document.createElement('div');
+        newCake.id = 'cake';
+        newCake.className = 'cake';
+        newCake.setAttribute('aria-label', 'cake');
+        newCake.style.opacity = '0';
+        newCake.style.transition = 'none';
+        newCake.style.transform = 'translate(-50%, -40vh)';
+        newCake.style.left = '50%';
+        newCake.style.bottom = '7.5%';
+        newCake.style.position = 'absolute';
+        // stage에 추가
+        stage.appendChild(newCake);
+        // 페이드인 애니메이션
         setTimeout(()=>{
-          cake.style.transition = '';
-        }, 900);
-      }, 400); // 박스가 완전히 사라진 뒤에 케이크 페이드인
+          newCake.style.transition = 'transform 0.7s cubic-bezier(.25,.8,.25,1), opacity 0.8s';
+          newCake.style.transform = 'translate(-50%, 0)';
+          newCake.style.opacity = '1';
+          setTimeout(()=>{
+            newCake.style.transition = '';
+          }, 900);
+        }, 100);
+        // cake 참조 갱신
+        cake = newCake;
+        
+        // 과일 개수 초기화 (새 케이크마다 새로 계산)
+        Object.keys(fruitCounts).forEach(key => delete fruitCounts[key]);
+      }, 1000);
     }, 1800);
-  // 함수 끝 중괄호 제거 (문법 오류 수정)
-
-  // 엔터키 매핑은 handleKeyDown에서 처리
+    // 엔터키 매핑은 handleKeyDown에서 처리
   }
 
   // ===== Input handling + playful surprises =====
@@ -711,6 +776,9 @@ function labelForBox(lang='ko'){
 
   // Reset pill button
   resetBtn.addEventListener('click', guestEat);
+
+  window.addEventListener('keydown', handleKeyDown);
+  window.addEventListener('keyup', handleKeyUp);
 
   // Reposition candles on resize
   window.addEventListener('resize', ()=>{ if(candlesLit) placeCandles(); });
